@@ -1,0 +1,16 @@
+export const SMARTPHONE_BRANDS = [
+  "Apple",
+  "Samsung",
+  "Google",
+  "Xiaomi",
+  "OnePlus",
+  "Oppo",
+  "Vivo",
+  "Huawei",
+  "Motorola",
+  "Sony",
+  "Nokia",
+  "Asus",
+  "Realme",
+  "Other",
+] as const;
