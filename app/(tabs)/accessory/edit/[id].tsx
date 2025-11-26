@@ -1,5 +1,6 @@
-import { PRODUCT_BRANDS } from "@/constants/brands";
+import { ACCESSORY_CATEGORIES } from "@/constants/categories";
 import { useInventory } from "@/contexts/InventoryContext";
+import { Accessory } from "@/types/inventory";
 import { CameraView, useCameraPermissions } from "expo-camera";
 import { Directory, File, Paths } from "expo-file-system";
 import { Image } from "expo-image";
@@ -25,21 +26,20 @@ import {
   TextInput,
   View,
 } from "react-native";
-import type { Product } from "../../../../types/inventory";
 
-export default function EditProductScreen() {
+export default function EditAccessoryScreen() {
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
   const {
-    products,
-    updateProduct,
-    deleteProduct,
-    isUpdatingProduct,
-    isDeletingProduct,
+    accessories,
+    updateAccessory,
+    deleteAccessory,
+    isUpdatingAccessory,
+    isDeletingAccessory,
   } = useInventory();
-  const [product, setProduct] = useState<Product | null>(null);
+  const [accessory, setAccessory] = useState<Accessory | null>(null);
   const [name, setName] = useState("");
-  const [brand, setBrand] = useState("");
+  const [category, setCategory] = useState("");
   const [price, setPrice] = useState("");
   const [description, setDescription] = useState("");
   const [quantity, setQuantity] = useState("");
@@ -50,17 +50,17 @@ export default function EditProductScreen() {
   const cameraRef = useRef<CameraView>(null);
 
   useEffect(() => {
-    const foundProduct = products.find((p) => p.id === Number(id));
-    if (foundProduct) {
-      setProduct(foundProduct);
-      setName(foundProduct.name);
-      setBrand(foundProduct.brand);
-      setPrice(foundProduct.price.toString());
-      setDescription(foundProduct.description || "");
-      setQuantity(foundProduct.quantity.toString());
-      setImageUri(foundProduct.imageUri);
+    const foundAccessory = accessories.find((p) => p.id === Number(id));
+    if (foundAccessory) {
+      setAccessory(foundAccessory);
+      setName(foundAccessory.name);
+      setCategory(foundAccessory.category);
+      setPrice(foundAccessory.price.toString());
+      setDescription(foundAccessory.description || "");
+      setQuantity(foundAccessory.quantity.toString());
+      setImageUri(foundAccessory.imageUri);
     }
-  }, [id, products]);
+  }, [id, accessories]);
 
   const handleTakePhoto = async () => {
     if (!permission?.granted) {
@@ -82,12 +82,12 @@ export default function EditProductScreen() {
     try {
       const photo = await cameraRef.current.takePictureAsync();
       if (photo?.uri) {
-        const imagesDir = new Directory(Paths.document, "product-images");
+        const imagesDir = new Directory(Paths.document, "accessory-images");
         if (!imagesDir.exists) {
           imagesDir.create({ intermediates: true });
         }
 
-        const filename = `product-${Date.now()}.jpg`;
+        const filename = `accessory-${Date.now()}.jpg`;
         const destination = new File(imagesDir, filename);
         const sourceFile = new File(photo.uri);
         sourceFile.copy(destination);
@@ -111,12 +111,12 @@ export default function EditProductScreen() {
 
     if (!result.canceled && result.assets[0]) {
       try {
-        const imagesDir = new Directory(Paths.document, "product-images");
+        const imagesDir = new Directory(Paths.document, "accessory-images");
         if (!imagesDir.exists) {
           imagesDir.create({ intermediates: true });
         }
 
-        const filename = `product-${Date.now()}.jpg`;
+        const filename = `accessory-${Date.now()}.jpg`;
         const destination = new File(imagesDir, filename);
         const sourceFile = new File(result.assets[0].uri);
         sourceFile.copy(destination);
@@ -130,16 +130,18 @@ export default function EditProductScreen() {
   };
 
   const handleSave = async () => {
-    if (!product) return;
+    if (!accessory) return;
 
     if (!name.trim()) {
       Alert.alert("Erreur de validation", "Veuillez saisir le nom du produit");
       return;
     }
-    if (!brand.trim()) {
-      Alert.alert("Erreur de validation", "Veuillez sélectionner une marque");
+
+    if (!category.trim()) {
+      Alert.alert("Erreur de validation", "Veuillez choisie un catégorie");
       return;
     }
+
     if (!price.trim() || isNaN(Number(price)) || Number(price) <= 0) {
       Alert.alert("Erreur de validation", "Veuillez saisir un prix valide");
       return;
@@ -153,17 +155,17 @@ export default function EditProductScreen() {
     }
 
     try {
-      const updatedProduct: Product = {
-        ...product,
+      const updatedAccessory: Accessory = {
+        ...accessory,
         name: name.trim(),
-        brand: brand.trim(),
+        category: category.trim() as any,
         price: Number(price),
         description: description.trim(),
         quantity: Number(quantity),
         imageUri,
       };
 
-      await updateProduct(updatedProduct);
+      await updateAccessory(updatedAccessory);
       router.back();
     } catch (error) {
       console.error("Erreur lors de la mise à jour du produit:", error);
@@ -172,11 +174,11 @@ export default function EditProductScreen() {
   };
 
   const handleDelete = () => {
-    if (!product) return;
+    if (!accessory) return;
 
     Alert.alert(
       "Supprimer le produit",
-      `Êtes-vous sûr de vouloir supprimer "${product.name}"?`,
+      `Êtes-vous sûr de vouloir supprimer "${accessory.name}"?`,
       [
         { text: "Annuler", style: "cancel" },
         {
@@ -184,11 +186,14 @@ export default function EditProductScreen() {
           style: "destructive",
           onPress: async () => {
             try {
-              await deleteProduct(product.id);
+              await deleteAccessory(accessory.id);
               router.back();
             } catch (error) {
-              console.error("Erreur lors de la suppression du produit:", error);
-              Alert.alert("Erreur", "Échec de la suppression du produit");
+              console.error(
+                "Erreur lors de la suppression de l'accessoire:",
+                error
+              );
+              Alert.alert("Erreur", "Échec de la suppression de l'accessoire");
             }
           },
         },
@@ -196,7 +201,7 @@ export default function EditProductScreen() {
     );
   };
 
-  if (!product) {
+  if (!accessory) {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color="#007AFF" />
@@ -242,7 +247,7 @@ export default function EditProductScreen() {
             <View>
               <Image
                 source={{ uri: imageUri }}
-                style={styles.productImage}
+                style={styles.accessoryImage}
                 contentFit="cover"
               />
               <Pressable
@@ -283,27 +288,29 @@ export default function EditProductScreen() {
           </View>
 
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Marque *</Text>
+            <Text style={styles.label}>Catégorie *</Text>
             <Pressable
               style={styles.input}
               onPress={() => setShowBrandPicker(!showBrandPicker)}
             >
-              <Text style={brand ? styles.inputText : styles.inputPlaceholder}>
-                {brand || "Select a brand"}
+              <Text
+                style={category ? styles.inputText : styles.inputPlaceholder}
+              >
+                {category || "Sélectionnez une catégorie"}
               </Text>
             </Pressable>
             {showBrandPicker && (
               <ScrollView style={styles.brandPicker} nestedScrollEnabled>
-                {PRODUCT_BRANDS.map((b) => (
+                {ACCESSORY_CATEGORIES.map((cat) => (
                   <Pressable
-                    key={b}
+                    key={cat}
                     style={styles.brandOption}
                     onPress={() => {
-                      setBrand(b);
+                      setCategory(cat);
                       setShowBrandPicker(false);
                     }}
                   >
-                    <Text style={styles.brandOptionText}>{b}</Text>
+                    <Text style={styles.brandOptionText}>{cat}</Text>
                   </Pressable>
                 ))}
               </ScrollView>
@@ -356,9 +363,9 @@ export default function EditProductScreen() {
         <Pressable
           style={[styles.button, styles.deleteButton]}
           onPress={handleDelete}
-          disabled={isDeletingProduct}
+          disabled={isDeletingAccessory}
         >
-          {isDeletingProduct ? (
+          {isDeletingAccessory ? (
             <ActivityIndicator color="#FFF" />
           ) : (
             <>
@@ -371,12 +378,12 @@ export default function EditProductScreen() {
           style={[
             styles.button,
             styles.saveButton,
-            isUpdatingProduct && styles.buttonDisabled,
+            isUpdatingAccessory && styles.buttonDisabled,
           ]}
           onPress={handleSave}
-          disabled={isUpdatingProduct}
+          disabled={isUpdatingAccessory}
         >
-          {isUpdatingProduct ? (
+          {isUpdatingAccessory ? (
             <ActivityIndicator color="#FFF" />
           ) : (
             <>
@@ -450,7 +457,7 @@ const styles = StyleSheet.create({
     padding: 20,
     alignItems: "center" as const,
   },
-  productImage: {
+  accessoryImage: {
     width: 200,
     height: 200,
     borderRadius: 12,

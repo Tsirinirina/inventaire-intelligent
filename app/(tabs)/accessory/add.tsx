@@ -55,12 +55,12 @@ export default function AddAccessoryScreen() {
     try {
       const photo = await cameraRef.current.takePictureAsync();
       if (photo?.uri) {
-        const imagesDir = new Directory(Paths.document, "product-images");
+        const imagesDir = new Directory(Paths.document, "accessory-images");
         if (!imagesDir.exists) {
           imagesDir.create({ intermediates: true });
         }
 
-        const filename = `product-${Date.now()}.jpg`;
+        const filename = `accessory-${Date.now()}.jpg`;
         const destination = new File(imagesDir, filename);
         const sourceFile = new File(photo.uri);
         sourceFile.copy(destination);
@@ -84,12 +84,12 @@ export default function AddAccessoryScreen() {
 
     if (!result.canceled && result.assets[0]) {
       try {
-        const imagesDir = new Directory(Paths.document, "product-images");
+        const imagesDir = new Directory(Paths.document, "accessory-images");
         if (!imagesDir.exists) {
           imagesDir.create({ intermediates: true });
         }
 
-        const filename = `product-${Date.now()}.jpg`;
+        const filename = `accessory-${Date.now()}.jpg`;
         const destination = new File(imagesDir, filename);
         const sourceFile = new File(result.assets[0].uri);
         sourceFile.copy(destination);
