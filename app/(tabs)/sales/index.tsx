@@ -170,7 +170,7 @@ export default function SalesScreen() {
           <Plus size={16} color="#007AFF" />
         </Pressable>
         <Text style={styles.cartItemTotal}>
-          ${(item.product.price * item.quantity).toFixed(2)}
+          {formatAriary(item.product.price * item.quantity)}
         </Text>
       </View>
     </View>
@@ -220,7 +220,7 @@ export default function SalesScreen() {
           <Text style={styles.cartTitle}>Vente en cours</Text>
           {cartItems.length > 0 && (
             <Pressable onPress={clearCart}>
-              <Text style={styles.clearCartButton}>Nettoyer</Text>
+              <Text style={styles.clearCartButton}>Vider</Text>
             </Pressable>
           )}
         </View>
@@ -263,7 +263,7 @@ export default function SalesScreen() {
             ) : (
               <>
                 <Check size={20} color="#FFF" />
-                <Text style={styles.checkoutButtonText}>Vente complète</Text>
+                <Text style={styles.checkoutButtonText}>Confirmer</Text>
               </>
             )}
           </Pressable>
@@ -278,10 +278,10 @@ const styles = StyleSheet.create({
     flex: 1,
     flexDirection: "row" as const,
     backgroundColor: "#F5F5F7",
-    paddingVertical: 30,
+    paddingTop: 30,
   },
   leftPanel: {
-    flex: 2,
+    flex: 1,
     backgroundColor: "#FFF",
   },
   rightPanel: {
@@ -344,7 +344,8 @@ const styles = StyleSheet.create({
   },
   productStock: {
     fontSize: 12,
-    color: "#999",
+    color: "#1f1f1f",
+    fontWeight: "bold",
   },
   productRight: {
     alignItems: "flex-end" as const,
@@ -385,8 +386,8 @@ const styles = StyleSheet.create({
     color: "#000",
   },
   clearCartButton: {
-    fontSize: 16,
-    fontWeight: "600" as const,
+    fontSize: 18,
+    fontWeight: "800" as const,
     color: "#FF3B30",
   },
   emptyCart: {
@@ -406,7 +407,8 @@ const styles = StyleSheet.create({
   },
   cartList: {
     flex: 1,
-    padding: 16,
+    paddingHorizontal: 5,
+    paddingVertical: 16,
   },
   cartItem: {
     backgroundColor: "#FFF",
