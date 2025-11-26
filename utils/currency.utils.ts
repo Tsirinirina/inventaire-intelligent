@@ -10,5 +10,6 @@ export const formatAriary = (amount: number) => {
     maximumFractionDigits: 0,
   })
     .format(amount)
-    .replace("MGA", "Ar");
+    .replace("MGA", "Ar")
+    .replace(" ", ".");
 };

@@ -1,4 +1,5 @@
 export const SMARTPHONE_BRANDS = [
+  // Marques principales internationales
   "Apple",
   "Samsung",
   "Google",
@@ -7,10 +8,99 @@ export const SMARTPHONE_BRANDS = [
   "Oppo",
   "Vivo",
   "Huawei",
+  "Honor",
   "Motorola",
   "Sony",
   "Nokia",
   "Asus",
   "Realme",
-  "Other",
+  "Lenovo",
+  "LG",
+  "HTC",
+  "ZTE",
+  "Meizu",
+
+  // Marques gaming / premium
+  "Asus ROG",
+  "Nubia",
+  "ZTE RedMagic",
+  "Black Shark",
+  "Lenovo Legion",
+
+  // Marques robustes / industriels
+  "CAT",
+  "Ulefone",
+  "Doogee",
+  "Blackview",
+  "Oukitel",
+  "AGM",
+  "Kyocera",
+  "Sonim",
+
+  // Marques chinoises émergentes / entrée de gamme
+  "Tecno",
+  "Infinix",
+  "Itel",
+  "LeEco",
+  "Coolpad",
+  "Gionee",
+  "Lava",
+  "Micromax",
+  "Karbonn",
+  "InFocus",
+  "BLU",
+  "Wiko",
+  "Alcatel",
+  "TCL",
+
+  // Marques régionales (Afrique, Asie, Indes…)
+  "Symphony",
+  "QMobile",
+  "Condor",
+  "Evertek",
+  "Mobell",
+  "iTel",
+  "Walton",
+  "Tecno Spark",
+  "Tecno Camon",
+
+  // Marques spécialisées low-cost
+  "Vodafone Smart",
+  "JioPhone",
+  "Kazuna",
+  "Hisense",
+  "Sharp",
+  "BQ",
+  "Prestigio",
+  "Archos",
+  "IMO",
+  "Verykool",
+
+  // Marques clones / copies / non reconnues
+  "Goophone",
+  "HDC",
+  "Sophone",
+  "Lephone",
+  "No Name",
+  "Generic",
+  "MTK Clone",
+  "Fake iPhone",
+  "Fake Samsung",
+  "Shenzhen Brand",
+
+  // Marques anciennes (disparues ou non actives)
+  "Palm",
+  "BlackBerry",
+  "Siemens",
+  "BenQ",
+  "Sagem",
+  "Philips",
+  "Toshiba",
+  "Panasonic",
+  "NEC",
+  "Fujitsu",
+  "Ericsson",
+
+  // Autres
+  "Autres",
 ] as const;

@@ -141,25 +141,30 @@ export default function AddProductScreen() {
 
   if (showCamera) {
     return (
-      <View style={styles.cameraContainer}>
-        <CameraView ref={cameraRef} style={styles.camera} facing="back">
-          <View style={styles.cameraControls}>
-            <Pressable
-              style={styles.cameraButton}
-              onPress={() => setShowCamera(false)}
-            >
-              <X size={24} color="#FFF" />
-            </Pressable>
-            <Pressable
-              style={styles.captureButton}
-              onPress={handleCapturePhoto}
-            >
-              <View style={styles.captureButtonInner} />
-            </Pressable>
-            <View style={styles.cameraButton} />
-          </View>
-        </CameraView>
-      </View>
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+      >
+        <View style={styles.cameraContainer}>
+          <CameraView ref={cameraRef} style={styles.camera} facing="back">
+            <View style={styles.cameraControls}>
+              <Pressable
+                style={styles.cameraButton}
+                onPress={() => setShowCamera(false)}
+              >
+                <X size={24} color="#FFF" />
+              </Pressable>
+              <Pressable
+                style={styles.captureButton}
+                onPress={handleCapturePhoto}
+              >
+                <View style={styles.captureButtonInner} />
+              </Pressable>
+              <View style={styles.cameraButton} />
+            </View>
+          </CameraView>
+        </View>
+      </KeyboardAvoidingView>
     );
   }
 

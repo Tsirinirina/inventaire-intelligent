@@ -1,4 +1,5 @@
 import { useInventory } from "@/contexts/InventoryContext";
+import { formatAriary } from "@/utils/currency.utils";
 import { Image } from "expo-image";
 import { useRouter } from "expo-router";
 import { AlertCircle, Plus, Search, X } from "lucide-react-native";
@@ -39,19 +40,19 @@ export default function ProductsScreen() {
 
   const handleDeleteProduct = (id: number, name: string) => {
     Alert.alert(
-      "Delete Product",
-      `Are you sure you want to delete "${name}"?`,
+      "Supprimer le produit",
+      `Êtes-vous sûr de vouloir supprimer "${name}"?`,
       [
-        { text: "Cancel", style: "cancel" },
+        { text: "Annuler", style: "cancel" },
         {
-          text: "Delete",
+          text: "Supprimer",
           style: "destructive",
           onPress: async () => {
             try {
               await deleteProduct(id);
             } catch (error) {
-              Alert.alert("Error", "Failed to delete product");
-              console.error("Delete error:", error);
+              Alert.alert("Error", "Échec de la suppression du produit");
+              console.error("Erreur de suppression:", error);
             }
           },
         },
@@ -74,13 +75,13 @@ export default function ProductsScreen() {
           />
         ) : (
           <View style={styles.productImagePlaceholder}>
-            <Text style={styles.placeholderText}>No Image</Text>
+            <Text style={styles.placeholderText}>Aucune image</Text>
           </View>
         )}
         {item.quantity <= 5 && (
           <View style={styles.lowStockBadge}>
             <AlertCircle size={12} color="#FFF" />
-            <Text style={styles.lowStockText}>Low</Text>
+            <Text style={styles.lowStockText}>Faible</Text>
           </View>
         )}
       </View>
@@ -92,7 +93,7 @@ export default function ProductsScreen() {
           {item.brand}
         </Text>
         <View style={styles.productDetails}>
-          <Text style={styles.productPrice}>${item.price.toFixed(2)}</Text>
+          <Text style={styles.productPrice}>{formatAriary(item.price)}</Text>
           <Text style={styles.productQuantity}>Stock: {item.quantity}</Text>
         </View>
       </View>
@@ -106,7 +107,7 @@ export default function ProductsScreen() {
           <Search size={20} color="#666" style={styles.searchIcon} />
           <TextInput
             style={styles.searchInput}
-            placeholder="Search products..."
+            placeholder="Rechercher des produits..."
             value={searchQuery}
             onChangeText={setSearchQuery}
             placeholderTextColor="#999"
@@ -129,7 +130,10 @@ export default function ProductsScreen() {
         contentContainerStyle={styles.brandFilterContent}
       >
         <Pressable
-          style={[styles.brandChip, !selectedBrand && styles.brandChipActive]}
+          style={[
+            styles.brandChipAll,
+            !selectedBrand && styles.brandChipActive,
+          ]}
           onPress={() => setSelectedBrand(null)}
         >
           <Text
@@ -138,7 +142,7 @@ export default function ProductsScreen() {
               !selectedBrand && styles.brandChipTextActive,
             ]}
           >
-            All
+            Tout
           </Text>
         </Pressable>
         {SMARTPHONE_BRANDS.map((brand) => (
@@ -169,11 +173,13 @@ export default function ProductsScreen() {
       ) : filteredProducts.length === 0 ? (
         <View style={styles.emptyContainer}>
           <Text style={styles.emptyText}>
-            {products.length === 0 ? "No products yet" : "No products found"}
+            {products.length === 0
+              ? "Aucun produit pour l'instant"
+              : "Aucun produit trouvé"}
           </Text>
           {products.length === 0 && (
             <Text style={styles.emptySubtext}>
-              Tap + to add your first product
+              Appuyez sur + pour ajouter votre premier produit
             </Text>
           )}
         </View>
@@ -202,6 +208,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#F5F5F7",
+    paddingVertical: 30,
   },
   searchContainer: {
     paddingHorizontal: 16,
@@ -228,23 +235,36 @@ const styles = StyleSheet.create({
   clearButton: {
     padding: 4,
   },
+  // BRANCH CHIPS
   brandFilterContainer: {
-    backgroundColor: "#FFF",
+    backgroundColor: "#cac8c8",
     borderBottomWidth: 1,
     borderBottomColor: "#E5E5EA",
+    maxHeight: 60,
   },
   brandFilterContent: {
     paddingHorizontal: 16,
     paddingVertical: 12,
     gap: 8,
+    height: "auto",
   },
   brandChip: {
+    display: "flex",
+    justifyContent: "center",
+    alignItems: "center",
     paddingHorizontal: 16,
-    paddingVertical: 8,
     borderRadius: 20,
     backgroundColor: "#F5F5F7",
     borderWidth: 1,
     borderColor: "#E5E5EA",
+  },
+  brandChipAll: {
+    display: "flex",
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 16,
+    borderRadius: 20,
+    backgroundColor: "#1eee41",
   },
   brandChipActive: {
     backgroundColor: "#007AFF",
@@ -252,12 +272,15 @@ const styles = StyleSheet.create({
   },
   brandChipText: {
     fontSize: 14,
-    fontWeight: "600" as const,
+    fontWeight: "800" as const,
     color: "#666",
   },
+
   brandChipTextActive: {
     color: "#FFF",
   },
+
+  // CONTAINER
   loadingContainer: {
     flex: 1,
     justifyContent: "center" as const,
