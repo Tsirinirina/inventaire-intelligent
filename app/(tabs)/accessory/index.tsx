@@ -16,10 +16,10 @@ import {
   View,
 } from "react-native";
 
-import { PRODUCT_BRANDS } from "@/constants/brands";
+import { ACCESSORY_CATEGORIES } from "@/constants/categories";
 import type { Accessory } from "../../../types/inventory";
 
-export default function ProductsScreen() {
+export default function AccessoriesScreen() {
   const router = useRouter();
   const {
     accessories,
@@ -152,22 +152,22 @@ export default function ProductsScreen() {
             Tout
           </Text>
         </Pressable>
-        {PRODUCT_BRANDS.map((brand) => (
+        {ACCESSORY_CATEGORIES.map((category) => (
           <Pressable
-            key={brand}
+            key={category}
             style={[
               styles.brandChip,
-              selectedCategory === brand && styles.brandChipActive,
+              selectedCategory === category && styles.brandChipActive,
             ]}
-            onPress={() => setSelectedCategory(brand)}
+            onPress={() => setSelectedCategory(category)}
           >
             <Text
               style={[
                 styles.brandChipText,
-                selectedCategory === brand && styles.brandChipTextActive,
+                selectedCategory === category && styles.brandChipTextActive,
               ]}
             >
-              {brand}
+              {category}
             </Text>
           </Pressable>
         ))}
@@ -203,7 +203,7 @@ export default function ProductsScreen() {
 
       <Pressable
         style={styles.fab}
-        onPress={() => router.push("/(tabs)/products/add")}
+        onPress={() => router.push("/(tabs)/accessory/add")}
       >
         <Plus size={28} color="#FFF" />
       </Pressable>

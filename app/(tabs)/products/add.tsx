@@ -125,6 +125,7 @@ export default function AddProductScreen() {
         name: name.trim(),
         brand: brand.trim(),
         price: Number(price),
+        category: "smartphone",
         description: description.trim(),
         quantity: Number(quantity),
         dateAdded: new Date().toISOString(),

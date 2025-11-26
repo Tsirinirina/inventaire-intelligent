@@ -1,6 +1,6 @@
 import { Stack } from "expo-router";
 
-export default function ProductsLayout() {
+export default function AccessoryLayout() {
   return (
     <Stack screenOptions={{ headerShown: false }}>
       <Stack.Screen name="index" />
@@ -9,7 +9,7 @@ export default function ProductsLayout() {
         options={{
           presentation: "modal",
           headerShown: true,
-          title: "Ajouter un produit",
+          title: "Ajouter un accessoire",
         }}
       />
       <Stack.Screen
@@ -17,7 +17,7 @@ export default function ProductsLayout() {
         options={{
           presentation: "modal",
           headerShown: true,
-          title: "Modifier le produit",
+          title: "Modifier l'accessoire",
         }}
       />
     </Stack>

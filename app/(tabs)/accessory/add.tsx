@@ -1,4 +1,4 @@
-import { PRODUCT_BRANDS } from "@/constants/brands";
+import { ACCESSORY_CATEGORIES } from "@/constants/categories";
 import { useInventory } from "@/contexts/InventoryContext";
 import { CameraView, useCameraPermissions } from "expo-camera";
 import { Directory, File, Paths } from "expo-file-system";
@@ -19,14 +19,14 @@ import {
   TextInput,
   View,
 } from "react-native";
-import type { NewProduct } from "../../../types/inventory";
+import type { NewAccessory } from "../../../types/inventory";
 
-export default function AddProductScreen() {
+export default function AddAccessoryScreen() {
   const router = useRouter();
-  const { addProduct, isAddingProduct } = useInventory();
+  const { addAccessory, isAddingAccessory } = useInventory();
   const [name, setName] = useState("");
-  const [brand, setBrand] = useState("");
   const [price, setPrice] = useState("");
+  const [category, setCategory] = useState("");
   const [description, setDescription] = useState("");
   const [quantity, setQuantity] = useState("");
   const [imageUri, setImageUri] = useState<string | undefined>(undefined);
@@ -104,13 +104,18 @@ export default function AddProductScreen() {
 
   const handleSave = async () => {
     if (!name.trim()) {
-      Alert.alert("Erreur de validation", "Veuillez saisir le nom du produit");
+      Alert.alert(
+        "Erreur de validation",
+        "Veuillez saisir le nom de l'accessoire"
+      );
       return;
     }
-    if (!brand.trim()) {
-      Alert.alert("Validation Error", "Veuillez sélectionner une marque");
+
+    if (!category.trim()) {
+      Alert.alert("Erreur de validation", "Veuillez choisie un catégorie");
       return;
     }
+
     if (!price.trim() || isNaN(Number(price)) || Number(price) <= 0) {
       Alert.alert("Validation Error", "Veuillez saisir un prix valide");
       return;
@@ -121,22 +126,21 @@ export default function AddProductScreen() {
     }
 
     try {
-      const product: NewProduct = {
+      const product: NewAccessory = {
         name: name.trim(),
-        brand: brand.trim(),
         price: Number(price),
-        category: "smartphone",
+        category: category.trim() as any,
         description: description.trim(),
         quantity: Number(quantity),
         dateAdded: new Date().toISOString(),
         imageUri,
       };
 
-      await addProduct(product);
+      await addAccessory(product);
       router.back();
     } catch (error) {
       console.error("Error adding product:", error);
-      Alert.alert("Erreur", "Impossible d'ajouter le produit");
+      Alert.alert("Erreur", "Impossible d'ajouter l'accessoire");
     }
   };
 
@@ -218,33 +222,35 @@ export default function AddProductScreen() {
               style={styles.input}
               value={name}
               onChangeText={setName}
-              placeholder="e.x., iPhone 15 Pro Max"
+              placeholder="e.x., Ecouteur bleutooth JBL"
               placeholderTextColor="#999"
             />
           </View>
 
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Marque *</Text>
+            <Text style={styles.label}>Catégorie *</Text>
             <Pressable
               style={styles.input}
               onPress={() => setShowBrandPicker(!showBrandPicker)}
             >
-              <Text style={brand ? styles.inputText : styles.inputPlaceholder}>
-                {brand || "Sélectionnez une marque"}
+              <Text
+                style={category ? styles.inputText : styles.inputPlaceholder}
+              >
+                {category || "Sélectionnez une categorie"}
               </Text>
             </Pressable>
             {showBrandPicker && (
               <ScrollView style={styles.brandPicker} nestedScrollEnabled>
-                {PRODUCT_BRANDS.map((b) => (
+                {ACCESSORY_CATEGORIES.map((cat) => (
                   <Pressable
-                    key={b}
+                    key={cat}
                     style={styles.brandOption}
                     onPress={() => {
-                      setBrand(b);
+                      setCategory(cat);
                       setShowBrandPicker(false);
                     }}
                   >
-                    <Text style={styles.brandOptionText}>{b}</Text>
+                    <Text style={styles.brandOptionText}>{cat}</Text>
                   </Pressable>
                 ))}
               </ScrollView>
@@ -283,7 +289,7 @@ export default function AddProductScreen() {
               style={[styles.input, styles.textArea]}
               value={description}
               onChangeText={setDescription}
-              placeholder="Description du produit"
+              placeholder="Couleur, motifs, états"
               placeholderTextColor="#999"
               multiline
               numberOfLines={6}
@@ -298,17 +304,19 @@ export default function AddProductScreen() {
           style={[
             styles.button,
             styles.saveButton,
-            isAddingProduct && styles.buttonDisabled,
+            isAddingAccessory && styles.buttonDisabled,
           ]}
           onPress={handleSave}
-          disabled={isAddingProduct}
+          disabled={isAddingAccessory}
         >
-          {isAddingProduct ? (
+          {isAddingAccessory ? (
             <ActivityIndicator color="#FFF" />
           ) : (
             <>
               <Check size={20} color="#FFF" />
-              <Text style={styles.saveButtonText}>Enregistrer le produit</Text>
+              <Text style={styles.saveButtonText}>
+                Enregistrer l&lsquo;accessoire
+              </Text>
             </>
           )}
         </Pressable>
