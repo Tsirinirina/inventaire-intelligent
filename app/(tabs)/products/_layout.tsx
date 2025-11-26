@@ -13,7 +13,7 @@ export default function ProductsLayout() {
         }}
       />
       <Stack.Screen
-        name="edit/[id]"
+        name="edit"
         options={{
           presentation: "modal",
           headerShown: true,

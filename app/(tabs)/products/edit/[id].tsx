@@ -67,8 +67,8 @@ export default function EditProductScreen() {
       const result = await requestPermission();
       if (!result.granted) {
         Alert.alert(
-          "Permission Required",
-          "Camera permission is required to take photos"
+          "Autorisation requise",
+          "L'autorisation de prendre des photos est requise."
         );
         return;
       }
@@ -96,8 +96,8 @@ export default function EditProductScreen() {
       }
       setShowCamera(false);
     } catch (error) {
-      console.error("Error capturing photo:", error);
-      Alert.alert("Error", "Failed to capture photo");
+      console.error("Erreur lors de la prise de la photo:", error);
+      Alert.alert("Erreur", "Impossible de prendre la photo");
     }
   };
 
@@ -123,8 +123,8 @@ export default function EditProductScreen() {
 
         setImageUri(destination.uri);
       } catch (error) {
-        console.error("Error saving image:", error);
-        Alert.alert("Error", "Failed to save image");
+        console.error("Erreur lors de l'enregistrement de l'image:", error);
+        Alert.alert("Erreur", "Impossible d'enregistrer l'image");
       }
     }
   };
@@ -133,19 +133,22 @@ export default function EditProductScreen() {
     if (!product) return;
 
     if (!name.trim()) {
-      Alert.alert("Validation Error", "Please enter a product name");
+      Alert.alert("Erreur de validation", "Veuillez saisir le nom du produit");
       return;
     }
     if (!brand.trim()) {
-      Alert.alert("Validation Error", "Please select a brand");
+      Alert.alert("Erreur de validation", "Veuillez sélectionner une marque");
       return;
     }
     if (!price.trim() || isNaN(Number(price)) || Number(price) <= 0) {
-      Alert.alert("Validation Error", "Please enter a valid price");
+      Alert.alert("Erreur de validation", "Veuillez saisir un prix valide");
       return;
     }
     if (!quantity.trim() || isNaN(Number(quantity)) || Number(quantity) < 0) {
-      Alert.alert("Validation Error", "Please enter a valid quantity");
+      Alert.alert(
+        "Erreur de validation",
+        "Veuillez saisir une quantité valide"
+      );
       return;
     }
 
@@ -163,8 +166,8 @@ export default function EditProductScreen() {
       await updateProduct(updatedProduct);
       router.back();
     } catch (error) {
-      console.error("Error updating product:", error);
-      Alert.alert("Error", "Failed to update product");
+      console.error("Erreur lors de la mise à jour du produit:", error);
+      Alert.alert("Erreur", "Échec de la mise à jour du produit");
     }
   };
 
@@ -172,20 +175,20 @@ export default function EditProductScreen() {
     if (!product) return;
 
     Alert.alert(
-      "Delete Product",
-      `Are you sure you want to delete "${product.name}"?`,
+      "Supprimer le produit",
+      `Êtes-vous sûr de vouloir supprimer "${product.name}"?`,
       [
-        { text: "Cancel", style: "cancel" },
+        { text: "Annuler", style: "cancel" },
         {
-          text: "Delete",
+          text: "Supprimer",
           style: "destructive",
           onPress: async () => {
             try {
               await deleteProduct(product.id);
               router.back();
             } catch (error) {
-              console.error("Error deleting product:", error);
-              Alert.alert("Error", "Failed to delete product");
+              console.error("Erreur lors de la suppression du produit:", error);
+              Alert.alert("Erreur", "Échec de la suppression du produit");
             }
           },
         },
@@ -252,35 +255,35 @@ export default function EditProductScreen() {
           ) : (
             <View style={styles.imagePlaceholder}>
               <ImageIcon size={40} color="#999" />
-              <Text style={styles.imagePlaceholderText}>No Image</Text>
+              <Text style={styles.imagePlaceholderText}>Aucune image</Text>
             </View>
           )}
           <View style={styles.imageButtons}>
             <Pressable style={styles.imageButton} onPress={handleTakePhoto}>
               <Camera size={20} color="#007AFF" />
-              <Text style={styles.imageButtonText}>Camera</Text>
+              <Text style={styles.imageButtonText}>Caméra</Text>
             </Pressable>
             <Pressable style={styles.imageButton} onPress={handlePickImage}>
               <ImageIcon size={20} color="#007AFF" />
-              <Text style={styles.imageButtonText}>Gallery</Text>
+              <Text style={styles.imageButtonText}>Galerie</Text>
             </Pressable>
           </View>
         </View>
 
         <View style={styles.form}>
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Product Name *</Text>
+            <Text style={styles.label}>Nom du produit *</Text>
             <TextInput
               style={styles.input}
               value={name}
               onChangeText={setName}
-              placeholder="e.g., iPhone 15 Pro Max"
+              placeholder="e.x., iPhone 15 Pro Max"
               placeholderTextColor="#999"
             />
           </View>
 
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Brand *</Text>
+            <Text style={styles.label}>Marque *</Text>
             <Pressable
               style={styles.input}
               onPress={() => setShowBrandPicker(!showBrandPicker)}
@@ -309,19 +312,19 @@ export default function EditProductScreen() {
 
           <View style={styles.row}>
             <View style={[styles.inputGroup, styles.flex1]}>
-              <Text style={styles.label}>Price ($) *</Text>
+              <Text style={styles.label}>Prix (Ariary) *</Text>
               <TextInput
                 style={styles.input}
                 value={price}
                 onChangeText={setPrice}
-                placeholder="0.00"
+                placeholder="000"
                 placeholderTextColor="#999"
                 keyboardType="decimal-pad"
               />
             </View>
 
             <View style={[styles.inputGroup, styles.flex1]}>
-              <Text style={styles.label}>Quantity *</Text>
+              <Text style={styles.label}>Quantité *</Text>
               <TextInput
                 style={styles.input}
                 value={quantity}
@@ -339,32 +342,31 @@ export default function EditProductScreen() {
               style={[styles.input, styles.textArea]}
               value={description}
               onChangeText={setDescription}
-              placeholder="Optional product description"
+              placeholder="Description du produit"
               placeholderTextColor="#999"
               multiline
               numberOfLines={4}
               textAlignVertical="top"
             />
           </View>
-
-          <Pressable
-            style={[styles.button, styles.deleteButton]}
-            onPress={handleDelete}
-            disabled={isDeletingProduct}
-          >
-            {isDeletingProduct ? (
-              <ActivityIndicator color="#FFF" />
-            ) : (
-              <>
-                <Trash2 size={20} color="#FFF" />
-                <Text style={styles.deleteButtonText}>Delete Product</Text>
-              </>
-            )}
-          </Pressable>
         </View>
       </ScrollView>
 
       <View style={styles.footer}>
+        <Pressable
+          style={[styles.button, styles.deleteButton]}
+          onPress={handleDelete}
+          disabled={isDeletingProduct}
+        >
+          {isDeletingProduct ? (
+            <ActivityIndicator color="#FFF" />
+          ) : (
+            <>
+              <Trash2 size={20} color="#FFF" />
+              <Text style={styles.deleteButtonText}>Supprimer</Text>
+            </>
+          )}
+        </Pressable>
         <Pressable
           style={[
             styles.button,
@@ -379,7 +381,7 @@ export default function EditProductScreen() {
           ) : (
             <>
               <Check size={20} color="#FFF" />
-              <Text style={styles.saveButtonText}>Save Changes</Text>
+              <Text style={styles.saveButtonText}>Enregistrer</Text>
             </>
           )}
         </Pressable>
@@ -563,6 +565,12 @@ const styles = StyleSheet.create({
     backgroundColor: "#FFF",
     borderTopWidth: 1,
     borderTopColor: "#E5E5EA",
+    display: "flex",
+    flexDirection: "row",
+    gap: 8,
+    width: "100%",
+    justifyContent: "space-around",
+    alignItems: "center",
   },
   button: {
     flexDirection: "row" as const,
@@ -571,6 +579,8 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     borderRadius: 12,
     gap: 8,
+    width: "auto",
+    paddingHorizontal: 20,
   },
   saveButton: {
     backgroundColor: "#007AFF",
@@ -582,7 +592,7 @@ const styles = StyleSheet.create({
   },
   deleteButton: {
     backgroundColor: "#FF3B30",
-    marginTop: 12,
+    // marginTop: 12,
   },
   deleteButtonText: {
     fontSize: 17,
