@@ -240,6 +240,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#cac8c8",
     borderBottomWidth: 1,
     borderBottomColor: "#E5E5EA",
+    minHeight: 60,
     maxHeight: 60,
   },
   brandFilterContent: {
