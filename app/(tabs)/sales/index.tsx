@@ -1,4 +1,5 @@
 import { useInventory } from "@/contexts/InventoryContext";
+import { formatAriary } from "@/utils/currency.utils";
 import { Check, DollarSign, Minus, Plus, Search, X } from "lucide-react-native";
 import { useMemo, useState } from "react";
 import {
@@ -47,7 +48,10 @@ export default function SalesScreen() {
     const currentQuantity = currentItem?.quantity || 0;
 
     if (currentQuantity >= product.quantity) {
-      Alert.alert("Stock Limit", `Only ${product.quantity} units available`);
+      Alert.alert(
+        "Limite de stock",
+        `Seulement ${product.quantity} unités disponibles`
+      );
       return;
     }
 
@@ -77,8 +81,8 @@ export default function SalesScreen() {
   const handleCheckout = async () => {
     if (cartItems.length === 0) {
       Alert.alert(
-        "Empty Cart",
-        "Please add items to the cart before checking out"
+        "Panier vide",
+        "Veuillez ajouter les articles à votre panier avant de finaliser votre commande."
       );
       return;
     }
@@ -97,7 +101,7 @@ export default function SalesScreen() {
         await addSale(sale);
       }
 
-      Alert.alert("Success", "Sale recorded successfully", [
+      Alert.alert("Succès", "Vente enregistrée avec succès", [
         {
           text: "OK",
           onPress: () => {
@@ -107,9 +111,11 @@ export default function SalesScreen() {
       ]);
     } catch (error: unknown) {
       const errorMessage =
-        error instanceof Error ? error.message : "Failed to record sale";
-      Alert.alert("Error", errorMessage);
-      console.error("Sale error:", error);
+        error instanceof Error
+          ? error.message
+          : "Échec de l'enregistrement de la vente";
+      Alert.alert("Erreur", errorMessage);
+      console.error("Erreur de vente:", error);
     }
   };
 
@@ -128,8 +134,8 @@ export default function SalesScreen() {
           <Text style={styles.productStock}>Stock: {item.quantity}</Text>
         </View>
         <View style={styles.productRight}>
-          <Text style={styles.productPrice}>${item.price.toFixed(2)}</Text>
-          {inCart && <Text style={styles.inCartBadge}>In Cart</Text>}
+          <Text style={styles.productPrice}>{formatAriary(item.price)}</Text>
+          {inCart && <Text style={styles.inCartBadge}>Dans le panier</Text>}
         </View>
       </Pressable>
     );
@@ -146,7 +152,7 @@ export default function SalesScreen() {
           {item.product.name}
         </Text>
         <Text style={styles.cartItemPrice}>
-          ${item.product.price.toFixed(2)} each
+          {formatAriary(item.product.price)} / 1
         </Text>
       </View>
       <View style={styles.cartItemControls}>
@@ -177,7 +183,7 @@ export default function SalesScreen() {
           <Search size={20} color="#666" style={styles.searchIcon} />
           <TextInput
             style={styles.searchInput}
-            placeholder="Search products..."
+            placeholder="Rechercher des produits..."
             value={searchQuery}
             onChangeText={setSearchQuery}
             placeholderTextColor="#999"
@@ -195,7 +201,7 @@ export default function SalesScreen() {
         {filteredProducts.length === 0 ? (
           <View style={styles.emptyState}>
             <Text style={styles.emptyText}>
-              {searchQuery ? "No products found" : "No products in stock"}
+              {searchQuery ? "Aucun produit trouvé" : "Aucun produit en stock"}
             </Text>
           </View>
         ) : (
@@ -211,10 +217,10 @@ export default function SalesScreen() {
 
       <View style={styles.rightPanel}>
         <View style={styles.cartHeader}>
-          <Text style={styles.cartTitle}>Current Sale</Text>
+          <Text style={styles.cartTitle}>Vente en cours</Text>
           {cartItems.length > 0 && (
             <Pressable onPress={clearCart}>
-              <Text style={styles.clearCartButton}>Clear</Text>
+              <Text style={styles.clearCartButton}>Nettoyer</Text>
             </Pressable>
           )}
         </View>
@@ -222,9 +228,9 @@ export default function SalesScreen() {
         {cartItems.length === 0 ? (
           <View style={styles.emptyCart}>
             <DollarSign size={48} color="#CCC" />
-            <Text style={styles.emptyCartText}>Cart is empty</Text>
+            <Text style={styles.emptyCartText}>Le panier est vide</Text>
             <Text style={styles.emptyCartSubtext}>
-              Add products to start a sale
+              Ajoutez des produits pour lancer une vente
             </Text>
           </View>
         ) : (
@@ -241,7 +247,7 @@ export default function SalesScreen() {
         <View style={styles.cartFooter}>
           <View style={styles.totalRow}>
             <Text style={styles.totalLabel}>Total</Text>
-            <Text style={styles.totalAmount}>${totalAmount.toFixed(2)}</Text>
+            <Text style={styles.totalAmount}>{formatAriary(totalAmount)}</Text>
           </View>
           <Pressable
             style={[
@@ -257,7 +263,7 @@ export default function SalesScreen() {
             ) : (
               <>
                 <Check size={20} color="#FFF" />
-                <Text style={styles.checkoutButtonText}>Complete Sale</Text>
+                <Text style={styles.checkoutButtonText}>Vente complète</Text>
               </>
             )}
           </Pressable>
@@ -272,6 +278,7 @@ const styles = StyleSheet.create({
     flex: 1,
     flexDirection: "row" as const,
     backgroundColor: "#F5F5F7",
+    paddingVertical: 30,
   },
   leftPanel: {
     flex: 2,
