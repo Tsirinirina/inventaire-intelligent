@@ -40,8 +40,8 @@ export default function AddProductScreen() {
       const result = await requestPermission();
       if (!result.granted) {
         Alert.alert(
-          "Permission Required",
-          "Camera permission is required to take photos"
+          "Autorisation requise",
+          "L'autorisation de prendre des photos est requise."
         );
         return;
       }
@@ -69,8 +69,8 @@ export default function AddProductScreen() {
       }
       setShowCamera(false);
     } catch (error) {
-      console.error("Error capturing photo:", error);
-      Alert.alert("Error", "Failed to capture photo");
+      console.error("Erreur lors de la prise de la photo:", error);
+      Alert.alert("Error", "Impossible de prendre la photo");
     }
   };
 
@@ -96,27 +96,27 @@ export default function AddProductScreen() {
 
         setImageUri(destination.uri);
       } catch (error) {
-        console.error("Error saving image:", error);
-        Alert.alert("Error", "Failed to save image");
+        console.error("Erreur lors de l'enregistrement de l'image:", error);
+        Alert.alert("Erreur", "Impossible d'enregistrer l'image");
       }
     }
   };
 
   const handleSave = async () => {
     if (!name.trim()) {
-      Alert.alert("Validation Error", "Please enter a product name");
+      Alert.alert("Erreur de validation", "Veuillez saisir le nom du produit");
       return;
     }
     if (!brand.trim()) {
-      Alert.alert("Validation Error", "Please select a brand");
+      Alert.alert("Validation Error", "Veuillez sélectionner une marque");
       return;
     }
     if (!price.trim() || isNaN(Number(price)) || Number(price) <= 0) {
-      Alert.alert("Validation Error", "Please enter a valid price");
+      Alert.alert("Validation Error", "Veuillez saisir un prix valide");
       return;
     }
     if (!quantity.trim() || isNaN(Number(quantity)) || Number(quantity) < 0) {
-      Alert.alert("Validation Error", "Please enter a valid quantity");
+      Alert.alert("Validation Error", "Veuillez saisir une quantité valide");
       return;
     }
 
@@ -135,7 +135,7 @@ export default function AddProductScreen() {
       router.back();
     } catch (error) {
       console.error("Error adding product:", error);
-      Alert.alert("Error", "Failed to add product");
+      Alert.alert("Erreur", "Impossible d'ajouter le produit");
     }
   };
 
@@ -195,41 +195,41 @@ export default function AddProductScreen() {
           ) : (
             <View style={styles.imagePlaceholder}>
               <ImageIcon size={40} color="#999" />
-              <Text style={styles.imagePlaceholderText}>No Image</Text>
+              <Text style={styles.imagePlaceholderText}>Aucune image</Text>
             </View>
           )}
           <View style={styles.imageButtons}>
             <Pressable style={styles.imageButton} onPress={handleTakePhoto}>
               <Camera size={20} color="#007AFF" />
-              <Text style={styles.imageButtonText}>Camera</Text>
+              <Text style={styles.imageButtonText}>Caméra</Text>
             </Pressable>
             <Pressable style={styles.imageButton} onPress={handlePickImage}>
               <ImageIcon size={20} color="#007AFF" />
-              <Text style={styles.imageButtonText}>Gallery</Text>
+              <Text style={styles.imageButtonText}>Galerie</Text>
             </Pressable>
           </View>
         </View>
 
         <View style={styles.form}>
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Product Name *</Text>
+            <Text style={styles.label}>Nom du produit *</Text>
             <TextInput
               style={styles.input}
               value={name}
               onChangeText={setName}
-              placeholder="e.g., iPhone 15 Pro Max"
+              placeholder="e.x., iPhone 15 Pro Max"
               placeholderTextColor="#999"
             />
           </View>
 
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Brand *</Text>
+            <Text style={styles.label}>Marque *</Text>
             <Pressable
               style={styles.input}
               onPress={() => setShowBrandPicker(!showBrandPicker)}
             >
               <Text style={brand ? styles.inputText : styles.inputPlaceholder}>
-                {brand || "Select a brand"}
+                {brand || "Sélectionnez une marque"}
               </Text>
             </Pressable>
             {showBrandPicker && (
@@ -252,19 +252,19 @@ export default function AddProductScreen() {
 
           <View style={styles.row}>
             <View style={[styles.inputGroup, styles.flex1]}>
-              <Text style={styles.label}>Price ($) *</Text>
+              <Text style={styles.label}>Prix (Ariary) *</Text>
               <TextInput
                 style={styles.input}
                 value={price}
                 onChangeText={setPrice}
-                placeholder="0.00"
+                placeholder="000"
                 placeholderTextColor="#999"
                 keyboardType="decimal-pad"
               />
             </View>
 
             <View style={[styles.inputGroup, styles.flex1]}>
-              <Text style={styles.label}>Quantity *</Text>
+              <Text style={styles.label}>Quantité *</Text>
               <TextInput
                 style={styles.input}
                 value={quantity}
@@ -282,10 +282,10 @@ export default function AddProductScreen() {
               style={[styles.input, styles.textArea]}
               value={description}
               onChangeText={setDescription}
-              placeholder="Optional product description"
+              placeholder="Description du produit"
               placeholderTextColor="#999"
               multiline
-              numberOfLines={4}
+              numberOfLines={6}
               textAlignVertical="top"
             />
           </View>
@@ -307,7 +307,7 @@ export default function AddProductScreen() {
           ) : (
             <>
               <Check size={20} color="#FFF" />
-              <Text style={styles.saveButtonText}>Save Product</Text>
+              <Text style={styles.saveButtonText}>Enregistrer le produit</Text>
             </>
           )}
         </Pressable>

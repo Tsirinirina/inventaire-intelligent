@@ -9,7 +9,7 @@ export default function ProductsLayout() {
         options={{
           presentation: "modal",
           headerShown: true,
-          title: "Add Product",
+          title: "Ajouter un produit",
         }}
       />
       <Stack.Screen
@@ -17,7 +17,7 @@ export default function ProductsLayout() {
         options={{
           presentation: "modal",
           headerShown: true,
-          title: "Edit Product",
+          title: "Modifier le produit",
         }}
       />
     </Stack>
