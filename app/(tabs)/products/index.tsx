@@ -15,7 +15,7 @@ import {
   TextInput,
   View,
 } from "react-native";
-import { SMARTPHONE_BRANDS } from "../../../constants/brands";
+import { PRODUCT_BRANDS } from "../../../constants/brands";
 import type { Product } from "../../../types/inventory";
 
 export default function ProductsScreen() {
@@ -145,7 +145,7 @@ export default function ProductsScreen() {
             Tout
           </Text>
         </Pressable>
-        {SMARTPHONE_BRANDS.map((brand) => (
+        {PRODUCT_BRANDS.map((brand) => (
           <Pressable
             key={brand}
             style={[

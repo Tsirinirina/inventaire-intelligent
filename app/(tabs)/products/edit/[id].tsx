@@ -1,4 +1,4 @@
-import { SMARTPHONE_BRANDS } from "@/constants/brands";
+import { PRODUCT_BRANDS } from "@/constants/brands";
 import { useInventory } from "@/contexts/InventoryContext";
 import { CameraView, useCameraPermissions } from "expo-camera";
 import { Directory, File, Paths } from "expo-file-system";
@@ -294,7 +294,7 @@ export default function EditProductScreen() {
             </Pressable>
             {showBrandPicker && (
               <ScrollView style={styles.brandPicker} nestedScrollEnabled>
-                {SMARTPHONE_BRANDS.map((b) => (
+                {PRODUCT_BRANDS.map((b) => (
                   <Pressable
                     key={b}
                     style={styles.brandOption}

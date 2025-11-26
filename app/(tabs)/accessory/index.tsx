@@ -15,32 +15,39 @@ import {
   TextInput,
   View,
 } from "react-native";
-import { SMARTPHONE_BRANDS } from "../../../constants/brands";
-import type { Product } from "../../../types/inventory";
+
+import { PRODUCT_BRANDS } from "@/constants/brands";
+import type { Accessory } from "../../../types/inventory";
 
 export default function ProductsScreen() {
   const router = useRouter();
-  const { products, isLoadingProducts, deleteProduct, isDeletingProduct } =
-    useInventory();
+  const {
+    accessories,
+    isLoadingAccessories,
+    deleteAccessory,
+    isDeletingAccessory,
+  } = useInventory();
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedBrand, setSelectedBrand] = useState<string | null>(null);
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
 
   const filteredProducts = useMemo(() => {
-    return products.filter((product) => {
+    return accessories.filter((accessory) => {
       const matchesSearch =
-        product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        product.brand.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        product.description?.toLowerCase().includes(searchQuery.toLowerCase());
+        accessory.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        accessory.description
+          ?.toLowerCase()
+          .includes(searchQuery.toLowerCase());
 
-      const matchesBrand = !selectedBrand || product.brand === selectedBrand;
+      const matchesBrand =
+        !selectedCategory || accessory.category === selectedCategory;
 
       return matchesSearch && matchesBrand;
     });
-  }, [products, searchQuery, selectedBrand]);
+  }, [accessories, searchQuery, selectedCategory]);
 
-  const handleDeleteProduct = (id: number, name: string) => {
+  const handleDeleteAccessory = (id: number, name: string) => {
     Alert.alert(
-      "Supprimer le produit",
+      "Supprimer l'accessoire",
       `Êtes-vous sûr de vouloir supprimer "${name}"?`,
       [
         { text: "Annuler", style: "cancel" },
@@ -49,9 +56,9 @@ export default function ProductsScreen() {
           style: "destructive",
           onPress: async () => {
             try {
-              await deleteProduct(id);
+              await deleteAccessory(id);
             } catch (error) {
-              Alert.alert("Error", "Échec de la suppression du produit");
+              Alert.alert("Error", "Échec de la suppression de l'accessoire");
               console.error("Erreur de suppression:", error);
             }
           },
@@ -60,11 +67,11 @@ export default function ProductsScreen() {
     );
   };
 
-  const renderProduct = ({ item }: { item: Product }) => (
+  const renderProduct = ({ item }: { item: Accessory }) => (
     <Pressable
       style={styles.productCard}
-      onPress={() => router.push(`/(tabs)/products/edit/${item.id}`)}
-      onLongPress={() => handleDeleteProduct(item.id, item.name)}
+      onPress={() => router.push(`/(tabs)/accessory/edit/${item.id}`)}
+      onLongPress={() => handleDeleteAccessory(item.id, item.name)}
     >
       <View style={styles.productImageContainer}>
         {item.imageUri ? (
@@ -90,7 +97,7 @@ export default function ProductsScreen() {
           {item.name}
         </Text>
         <Text style={styles.productBrand} numberOfLines={1}>
-          {item.brand}
+          {item.category}
         </Text>
         <View style={styles.productDetails}>
           <Text style={styles.productPrice}>{formatAriary(item.price)}</Text>
@@ -107,7 +114,7 @@ export default function ProductsScreen() {
           <Search size={20} color="#666" style={styles.searchIcon} />
           <TextInput
             style={styles.searchInput}
-            placeholder="Rechercher des produits..."
+            placeholder="Rechercher des accessoires..."
             value={searchQuery}
             onChangeText={setSearchQuery}
             placeholderTextColor="#999"
@@ -132,32 +139,32 @@ export default function ProductsScreen() {
         <Pressable
           style={[
             styles.brandChipAll,
-            !selectedBrand && styles.brandChipActive,
+            !selectedCategory && styles.brandChipActive,
           ]}
-          onPress={() => setSelectedBrand(null)}
+          onPress={() => setSelectedCategory(null)}
         >
           <Text
             style={[
               styles.brandChipText,
-              !selectedBrand && styles.brandChipTextActive,
+              !selectedCategory && styles.brandChipTextActive,
             ]}
           >
             Tout
           </Text>
         </Pressable>
-        {SMARTPHONE_BRANDS.map((brand) => (
+        {PRODUCT_BRANDS.map((brand) => (
           <Pressable
             key={brand}
             style={[
               styles.brandChip,
-              selectedBrand === brand && styles.brandChipActive,
+              selectedCategory === brand && styles.brandChipActive,
             ]}
-            onPress={() => setSelectedBrand(brand)}
+            onPress={() => setSelectedCategory(brand)}
           >
             <Text
               style={[
                 styles.brandChipText,
-                selectedBrand === brand && styles.brandChipTextActive,
+                selectedCategory === brand && styles.brandChipTextActive,
               ]}
             >
               {brand}
@@ -166,20 +173,20 @@ export default function ProductsScreen() {
         ))}
       </ScrollView>
 
-      {isLoadingProducts || isDeletingProduct ? (
+      {isLoadingAccessories || isDeletingAccessory ? (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#007AFF" />
         </View>
       ) : filteredProducts.length === 0 ? (
         <View style={styles.emptyContainer}>
           <Text style={styles.emptyText}>
-            {products.length === 0
-              ? "Aucun produit pour l'instant"
-              : "Aucun produit trouvé"}
+            {accessories.length === 0
+              ? "Aucun accessoire pour l'instant"
+              : "Aucun accessoire trouvé"}
           </Text>
-          {products.length === 0 && (
+          {accessories.length === 0 && (
             <Text style={styles.emptySubtext}>
-              Appuyez sur + pour ajouter votre premier produit
+              Appuyez sur + pour ajouter votre premier accessoire
             </Text>
           )}
         </View>

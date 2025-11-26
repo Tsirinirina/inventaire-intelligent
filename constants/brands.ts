@@ -1,4 +1,4 @@
-export const SMARTPHONE_BRANDS = [
+export const PRODUCT_BRANDS = [
   // Marques principales internationales
   "Apple",
   "Samsung",

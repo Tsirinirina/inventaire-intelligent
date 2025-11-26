@@ -1,12 +1,18 @@
-import { SMARTPHONE_BRANDS } from "@/constants/brands";
+import { PRODUCT_BRANDS } from "@/constants/brands";
 import { useInventory } from "@/contexts/InventoryContext";
 import { CameraView, useCameraPermissions } from "expo-camera";
 import { Directory, File, Paths } from "expo-file-system";
 import { Image } from "expo-image";
 import * as ImagePicker from "expo-image-picker";
-import { useRouter } from "expo-router";
-import { Camera, Check, Image as ImageIcon, X } from "lucide-react-native";
-import { useRef, useState } from "react";
+import { useLocalSearchParams, useRouter } from "expo-router";
+import {
+  Camera,
+  Check,
+  Image as ImageIcon,
+  Trash2,
+  X,
+} from "lucide-react-native";
+import { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -19,11 +25,19 @@ import {
   TextInput,
   View,
 } from "react-native";
-import type { NewProduct } from "../../../types/inventory";
+import type { Product } from "../../../../types/inventory";
 
-export default function AddProductScreen() {
+export default function EditProductScreen() {
   const router = useRouter();
-  const { addProduct, isAddingProduct } = useInventory();
+  const { id } = useLocalSearchParams<{ id: string }>();
+  const {
+    products,
+    updateProduct,
+    deleteProduct,
+    isUpdatingProduct,
+    isDeletingProduct,
+  } = useInventory();
+  const [product, setProduct] = useState<Product | null>(null);
   const [name, setName] = useState("");
   const [brand, setBrand] = useState("");
   const [price, setPrice] = useState("");
@@ -34,6 +48,19 @@ export default function AddProductScreen() {
   const [showBrandPicker, setShowBrandPicker] = useState(false);
   const [permission, requestPermission] = useCameraPermissions();
   const cameraRef = useRef<CameraView>(null);
+
+  useEffect(() => {
+    const foundProduct = products.find((p) => p.id === Number(id));
+    if (foundProduct) {
+      setProduct(foundProduct);
+      setName(foundProduct.name);
+      setBrand(foundProduct.brand);
+      setPrice(foundProduct.price.toString());
+      setDescription(foundProduct.description || "");
+      setQuantity(foundProduct.quantity.toString());
+      setImageUri(foundProduct.imageUri);
+    }
+  }, [id, products]);
 
   const handleTakePhoto = async () => {
     if (!permission?.granted) {
@@ -70,7 +97,7 @@ export default function AddProductScreen() {
       setShowCamera(false);
     } catch (error) {
       console.error("Erreur lors de la prise de la photo:", error);
-      Alert.alert("Error", "Impossible de prendre la photo");
+      Alert.alert("Erreur", "Impossible de prendre la photo");
     }
   };
 
@@ -103,68 +130,101 @@ export default function AddProductScreen() {
   };
 
   const handleSave = async () => {
+    if (!product) return;
+
     if (!name.trim()) {
       Alert.alert("Erreur de validation", "Veuillez saisir le nom du produit");
       return;
     }
     if (!brand.trim()) {
-      Alert.alert("Validation Error", "Veuillez sélectionner une marque");
+      Alert.alert("Erreur de validation", "Veuillez sélectionner une marque");
       return;
     }
     if (!price.trim() || isNaN(Number(price)) || Number(price) <= 0) {
-      Alert.alert("Validation Error", "Veuillez saisir un prix valide");
+      Alert.alert("Erreur de validation", "Veuillez saisir un prix valide");
       return;
     }
     if (!quantity.trim() || isNaN(Number(quantity)) || Number(quantity) < 0) {
-      Alert.alert("Validation Error", "Veuillez saisir une quantité valide");
+      Alert.alert(
+        "Erreur de validation",
+        "Veuillez saisir une quantité valide"
+      );
       return;
     }
 
     try {
-      const product: NewProduct = {
+      const updatedProduct: Product = {
+        ...product,
         name: name.trim(),
         brand: brand.trim(),
         price: Number(price),
         description: description.trim(),
         quantity: Number(quantity),
-        dateAdded: new Date().toISOString(),
         imageUri,
       };
 
-      await addProduct(product);
+      await updateProduct(updatedProduct);
       router.back();
     } catch (error) {
-      console.error("Error adding product:", error);
-      Alert.alert("Erreur", "Impossible d'ajouter le produit");
+      console.error("Erreur lors de la mise à jour du produit:", error);
+      Alert.alert("Erreur", "Échec de la mise à jour du produit");
     }
   };
 
+  const handleDelete = () => {
+    if (!product) return;
+
+    Alert.alert(
+      "Supprimer le produit",
+      `Êtes-vous sûr de vouloir supprimer "${product.name}"?`,
+      [
+        { text: "Annuler", style: "cancel" },
+        {
+          text: "Supprimer",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              await deleteProduct(product.id);
+              router.back();
+            } catch (error) {
+              console.error("Erreur lors de la suppression du produit:", error);
+              Alert.alert("Erreur", "Échec de la suppression du produit");
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  if (!product) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#007AFF" />
+      </View>
+    );
+  }
+
   if (showCamera) {
     return (
-      <KeyboardAvoidingView
-        style={{ flex: 1 }}
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
-      >
-        <View style={styles.cameraContainer}>
-          <CameraView ref={cameraRef} style={styles.camera} facing="back">
-            <View style={styles.cameraControls}>
-              <Pressable
-                style={styles.cameraButton}
-                onPress={() => setShowCamera(false)}
-              >
-                <X size={24} color="#FFF" />
-              </Pressable>
-              <Pressable
-                style={styles.captureButton}
-                onPress={handleCapturePhoto}
-              >
-                <View style={styles.captureButtonInner} />
-              </Pressable>
-              <View style={styles.cameraButton} />
-            </View>
-          </CameraView>
-        </View>
-      </KeyboardAvoidingView>
+      <View style={styles.cameraContainer}>
+        <CameraView ref={cameraRef} style={styles.camera} facing="back">
+          <View style={styles.cameraControls}>
+            <Pressable
+              style={styles.cameraButton}
+              onPress={() => setShowCamera(false)}
+            >
+              <X size={24} color="#FFF" />
+            </Pressable>
+            <Pressable
+              style={styles.captureButton}
+              onPress={handleCapturePhoto}
+            >
+              <View style={styles.captureButtonInner} />
+            </Pressable>
+            <View style={styles.cameraButton} />
+          </View>
+        </CameraView>
+      </View>
     );
   }
 
@@ -229,12 +289,12 @@ export default function AddProductScreen() {
               onPress={() => setShowBrandPicker(!showBrandPicker)}
             >
               <Text style={brand ? styles.inputText : styles.inputPlaceholder}>
-                {brand || "Sélectionnez une marque"}
+                {brand || "Select a brand"}
               </Text>
             </Pressable>
             {showBrandPicker && (
               <ScrollView style={styles.brandPicker} nestedScrollEnabled>
-                {SMARTPHONE_BRANDS.map((b) => (
+                {PRODUCT_BRANDS.map((b) => (
                   <Pressable
                     key={b}
                     style={styles.brandOption}
@@ -285,7 +345,7 @@ export default function AddProductScreen() {
               placeholder="Description du produit"
               placeholderTextColor="#999"
               multiline
-              numberOfLines={6}
+              numberOfLines={4}
               textAlignVertical="top"
             />
           </View>
@@ -294,20 +354,34 @@ export default function AddProductScreen() {
 
       <View style={styles.footer}>
         <Pressable
+          style={[styles.button, styles.deleteButton]}
+          onPress={handleDelete}
+          disabled={isDeletingProduct}
+        >
+          {isDeletingProduct ? (
+            <ActivityIndicator color="#FFF" />
+          ) : (
+            <>
+              <Trash2 size={20} color="#FFF" />
+              <Text style={styles.deleteButtonText}>Supprimer</Text>
+            </>
+          )}
+        </Pressable>
+        <Pressable
           style={[
             styles.button,
             styles.saveButton,
-            isAddingProduct && styles.buttonDisabled,
+            isUpdatingProduct && styles.buttonDisabled,
           ]}
           onPress={handleSave}
-          disabled={isAddingProduct}
+          disabled={isUpdatingProduct}
         >
-          {isAddingProduct ? (
+          {isUpdatingProduct ? (
             <ActivityIndicator color="#FFF" />
           ) : (
             <>
               <Check size={20} color="#FFF" />
-              <Text style={styles.saveButtonText}>Enregistrer le produit</Text>
+              <Text style={styles.saveButtonText}>Enregistrer</Text>
             </>
           )}
         </Pressable>
@@ -326,6 +400,11 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingBottom: 100,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center" as const,
+    alignItems: "center" as const,
   },
   cameraContainer: {
     flex: 1,
@@ -486,6 +565,12 @@ const styles = StyleSheet.create({
     backgroundColor: "#FFF",
     borderTopWidth: 1,
     borderTopColor: "#E5E5EA",
+    display: "flex",
+    flexDirection: "row",
+    gap: 8,
+    width: "100%",
+    justifyContent: "space-around",
+    alignItems: "center",
   },
   button: {
     flexDirection: "row" as const,
@@ -494,11 +579,22 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     borderRadius: 12,
     gap: 8,
+    width: "auto",
+    paddingHorizontal: 20,
   },
   saveButton: {
     backgroundColor: "#007AFF",
   },
   saveButtonText: {
+    fontSize: 17,
+    fontWeight: "600" as const,
+    color: "#FFF",
+  },
+  deleteButton: {
+    backgroundColor: "#FF3B30",
+    // marginTop: 12,
+  },
+  deleteButtonText: {
     fontSize: 17,
     fontWeight: "600" as const,
     color: "#FFF",
