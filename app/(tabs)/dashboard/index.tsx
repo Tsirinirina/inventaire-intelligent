@@ -1,4 +1,5 @@
 import { useInventory } from "@/contexts/InventoryContext";
+import { formatAriary } from "@/utils/currency.utils";
 import { useRouter } from "expo-router";
 import {
   AlertCircle,
@@ -84,10 +85,10 @@ export default function DashboardScreen() {
               <AlertCircle size={20} color="#FFF" />
             </View>
             <View style={styles.alertContent}>
-              <Text style={styles.alertTitle}>Out of Stock</Text>
+              <Text style={styles.alertTitle}>En rupture de stock</Text>
               <Text style={styles.alertText}>
-                {stats.outOfStockProducts.length} product
-                {stats.outOfStockProducts.length !== 1 ? "s" : ""} out of stock
+                {stats.outOfStockProducts.length} produit
+                {stats.outOfStockProducts.length !== 1 ? "s" : ""} épuisé
               </Text>
             </View>
           </Pressable>
@@ -132,7 +133,7 @@ export default function DashboardScreen() {
           <View style={styles.statIcon}>
             <DollarSign size={24} color="#FFF" />
           </View>
-          <Text style={styles.statValue}>${stats.totalValue.toFixed(0)}</Text>
+          <Text style={styles.statValue}>{formatAriary(stats.totalValue)}</Text>
           <Text style={styles.statLabel}>Valeur d&apos;inventaire</Text>
         </View>
 
@@ -162,7 +163,7 @@ export default function DashboardScreen() {
             <View style={styles.performanceItem}>
               <DollarSign size={20} color="#007AFF" />
               <Text style={styles.performanceValue}>
-                ${stats.todayRevenue.toFixed(2)}
+                {formatAriary(stats.todayRevenue)}
               </Text>
               <Text style={styles.performanceLabel}>
                 Revenus aujourd&apos;hui
@@ -178,22 +179,21 @@ export default function DashboardScreen() {
           <View style={styles.summaryRow}>
             <Text style={styles.summaryLabel}>Revenu total</Text>
             <Text style={styles.summaryValue}>
-              ${stats.totalRevenue.toFixed(2)}
+              {formatAriary(stats.totalRevenue)}
             </Text>
           </View>
           <View style={styles.summaryDivider} />
           <View style={styles.summaryRow}>
             <Text style={styles.summaryLabel}>Vente moyenne</Text>
             <Text style={styles.summaryValue}>
-              $
               {stats.totalSales > 0
-                ? (stats.totalRevenue / stats.totalSales).toFixed(2)
-                : "0.00"}
+                ? formatAriary(stats.totalRevenue / stats.totalSales)
+                : "0 Ar"}
             </Text>
           </View>
           <View style={styles.summaryDivider} />
           <View style={styles.summaryRow}>
-            <Text style={styles.summaryLabel}>Marque supérieure</Text>
+            <Text style={styles.summaryLabel}>TOP Marque</Text>
             <Text style={styles.summaryValue}>
               {stats.topBrand
                 ? `${stats.topBrand.name} (${stats.topBrand.count})`
