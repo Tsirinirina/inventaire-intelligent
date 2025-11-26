@@ -14,7 +14,7 @@ import type {
   Sale,
 } from "../types/inventory";
 
-const DATABASE_NAME = "inventory.db";
+const DATABASE_NAME = "inventaire.db";
 const PRODUCTS_KEY = "inventory_products";
 const SALES_KEY = "inventory_sales";
 const ACCESSORIES_KEY = "inventory_accessories";
@@ -179,6 +179,7 @@ export const [InventoryProvider, useInventory] = createContextHook(() => {
         await AsyncStorage.setItem(PRODUCTS_KEY, JSON.stringify(updated));
         return;
       }
+
       db!.runSync(
         `UPDATE products 
          SET name = ?, brand = ?, price = ?, category = ?, description = ?, quantity = ?, imageUri = ?

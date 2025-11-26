@@ -1,3 +1,4 @@
+import { PRODUCT_CATEGORIES } from "@/constants/categories";
 import { useInventory } from "@/contexts/InventoryContext";
 import { formatAriary } from "@/utils/currency.utils";
 import { Image } from "expo-image";
@@ -18,12 +19,19 @@ import {
 import { PRODUCT_BRANDS } from "../../../constants/brands";
 import type { Product } from "../../../types/inventory";
 
+const CustomStickyHeader: React.FC<{ title: string }> = ({ title }) => (
+  <View>
+    <Text>{title}</Text>
+  </View>
+);
+
 export default function ProductsScreen() {
   const router = useRouter();
   const { products, isLoadingProducts, deleteProduct, isDeletingProduct } =
     useInventory();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedBrand, setSelectedBrand] = useState<string | null>(null);
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
 
   const filteredProducts = useMemo(() => {
     return products.filter((product) => {
@@ -33,10 +41,12 @@ export default function ProductsScreen() {
         product.description?.toLowerCase().includes(searchQuery.toLowerCase());
 
       const matchesBrand = !selectedBrand || product.brand === selectedBrand;
+      const matchesCategory =
+        !selectedCategory || product.category === selectedCategory;
 
-      return matchesSearch && matchesBrand;
+      return matchesSearch && matchesBrand && matchesCategory;
     });
-  }, [products, searchQuery, selectedBrand]);
+  }, [products, searchQuery, selectedBrand, selectedCategory]);
 
   const handleDeleteProduct = (id: number, name: string) => {
     Alert.alert(
@@ -84,6 +94,11 @@ export default function ProductsScreen() {
             <Text style={styles.lowStockText}>Faible</Text>
           </View>
         )}
+        {item.category && (
+          <View style={styles.categoryBadge}>
+            <Text style={styles.categoryBadgeText}>{item.category}</Text>
+          </View>
+        )}
       </View>
       <View style={styles.productInfo}>
         <Text style={styles.productName} numberOfLines={1}>
@@ -123,48 +138,97 @@ export default function ProductsScreen() {
         </View>
       </View>
 
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        style={styles.brandFilterContainer}
-        contentContainerStyle={styles.brandFilterContent}
-      >
-        <Pressable
-          style={[
-            styles.brandChipAll,
-            !selectedBrand && styles.brandChipActive,
-          ]}
-          onPress={() => setSelectedBrand(null)}
+      <View style={styles.filterContainer}>
+        <Text style={styles.filterTitle}>Marques des produits</Text>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          style={styles.brandFilterContainer}
+          contentContainerStyle={styles.brandFilterContent}
         >
-          <Text
-            style={[
-              styles.brandChipText,
-              !selectedBrand && styles.brandChipTextActive,
-            ]}
-          >
-            Tout
-          </Text>
-        </Pressable>
-        {PRODUCT_BRANDS.map((brand) => (
           <Pressable
-            key={brand}
             style={[
-              styles.brandChip,
-              selectedBrand === brand && styles.brandChipActive,
+              styles.brandChipAll,
+              !selectedBrand && styles.brandChipActive,
             ]}
-            onPress={() => setSelectedBrand(brand)}
+            onPress={() => setSelectedBrand(null)}
           >
             <Text
               style={[
                 styles.brandChipText,
-                selectedBrand === brand && styles.brandChipTextActive,
+                !selectedBrand && styles.brandChipTextActive,
               ]}
             >
-              {brand}
+              Tout
             </Text>
           </Pressable>
-        ))}
-      </ScrollView>
+          {PRODUCT_BRANDS.map((brand) => (
+            <Pressable
+              key={brand}
+              style={[
+                styles.brandChip,
+                selectedBrand === brand && styles.brandChipActive,
+              ]}
+              onPress={() => setSelectedBrand(brand)}
+            >
+              <Text
+                style={[
+                  styles.brandChipText,
+                  selectedBrand === brand && styles.brandChipTextActive,
+                ]}
+              >
+                {brand}
+              </Text>
+            </Pressable>
+          ))}
+        </ScrollView>
+      </View>
+
+      <View style={styles.filterContainer}>
+        <Text style={styles.filterTitle}>Catégories des produits</Text>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          style={styles.brandFilterContainer}
+          contentContainerStyle={styles.brandFilterContent}
+        >
+          <Pressable
+            style={[
+              styles.brandChipAll,
+              !selectedCategory && styles.brandChipActive,
+            ]}
+            onPress={() => setSelectedCategory(null)}
+          >
+            <Text
+              style={[
+                styles.brandChipText,
+                !selectedCategory && styles.brandChipTextActive,
+              ]}
+            >
+              Tout
+            </Text>
+          </Pressable>
+          {PRODUCT_CATEGORIES.map((cat) => (
+            <Pressable
+              key={cat}
+              style={[
+                styles.brandChip,
+                selectedCategory === cat && styles.brandChipActive,
+              ]}
+              onPress={() => setSelectedCategory(cat)}
+            >
+              <Text
+                style={[
+                  styles.brandChipText,
+                  selectedCategory === cat && styles.brandChipTextActive,
+                ]}
+              >
+                {cat}
+              </Text>
+            </Pressable>
+          ))}
+        </ScrollView>
+      </View>
 
       {isLoadingProducts || isDeletingProduct ? (
         <View style={styles.loadingContainer}>
@@ -207,8 +271,8 @@ export default function ProductsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#F5F5F7",
-    paddingVertical: 30,
+    backgroundColor: "#ffffff",
+    paddingTop: 30,
   },
   searchContainer: {
     paddingHorizontal: 16,
@@ -235,17 +299,22 @@ const styles = StyleSheet.create({
   clearButton: {
     padding: 4,
   },
+
+  filterContainer: { backgroundColor: "#ffffff", minHeight: 70, maxHeight: 70 },
+  filterTitle: {
+    fontSize: 18,
+    fontWeight: "600" as const,
+    color: "#252525",
+    paddingLeft: 14,
+  },
   // BRANCH CHIPS
   brandFilterContainer: {
-    backgroundColor: "#cac8c8",
+    paddingVertical: 10,
+    paddingLeft: 14,
     borderBottomWidth: 1,
-    borderBottomColor: "#E5E5EA",
-    minHeight: 60,
-    maxHeight: 60,
+    borderBottomColor: "#bdb9b9",
   },
   brandFilterContent: {
-    paddingHorizontal: 16,
-    paddingVertical: 12,
     gap: 8,
     height: "auto",
   },
@@ -255,9 +324,10 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingHorizontal: 16,
     borderRadius: 20,
-    backgroundColor: "#F5F5F7",
+    backgroundColor: "#ffffff",
     borderWidth: 1,
     borderColor: "#E5E5EA",
+    elevation: 5,
   },
   brandChipAll: {
     display: "flex",
@@ -310,12 +380,12 @@ const styles = StyleSheet.create({
   productCard: {
     flex: 1,
     backgroundColor: "#FFF",
-    borderRadius: 16,
+    borderRadius: 8,
     margin: 4,
     overflow: "hidden",
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 1,
     shadowRadius: 4,
     elevation: 3,
   },
@@ -351,6 +421,23 @@ const styles = StyleSheet.create({
   },
   lowStockText: {
     color: "#FFF",
+    fontSize: 12,
+    fontWeight: "600" as const,
+  },
+  categoryBadge: {
+    position: "absolute" as const,
+    top: 8,
+    left: 8,
+    flexDirection: "row" as const,
+    alignItems: "center" as const,
+    backgroundColor: "#ffffff",
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    gap: 4,
+  },
+  categoryBadgeText: {
+    color: "#3d3d3d",
     fontSize: 12,
     fontWeight: "600" as const,
   },

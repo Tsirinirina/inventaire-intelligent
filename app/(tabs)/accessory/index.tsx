@@ -130,48 +130,52 @@ export default function AccessoriesScreen() {
         </View>
       </View>
 
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        style={styles.brandFilterContainer}
-        contentContainerStyle={styles.brandFilterContent}
-      >
-        <Pressable
-          style={[
-            styles.brandChipAll,
-            !selectedCategory && styles.brandChipActive,
-          ]}
-          onPress={() => setSelectedCategory(null)}
+      <View style={styles.filterContainer}>
+        <Text style={styles.filterTitle}>Marques des produits</Text>
+
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          style={styles.brandFilterContainer}
+          contentContainerStyle={styles.brandFilterContent}
         >
-          <Text
-            style={[
-              styles.brandChipText,
-              !selectedCategory && styles.brandChipTextActive,
-            ]}
-          >
-            Tout
-          </Text>
-        </Pressable>
-        {ACCESSORY_CATEGORIES.map((category) => (
           <Pressable
-            key={category}
             style={[
-              styles.brandChip,
-              selectedCategory === category && styles.brandChipActive,
+              styles.brandChipAll,
+              !selectedCategory && styles.brandChipActive,
             ]}
-            onPress={() => setSelectedCategory(category)}
+            onPress={() => setSelectedCategory(null)}
           >
             <Text
               style={[
                 styles.brandChipText,
-                selectedCategory === category && styles.brandChipTextActive,
+                !selectedCategory && styles.brandChipTextActive,
               ]}
             >
-              {category}
+              Tout
             </Text>
           </Pressable>
-        ))}
-      </ScrollView>
+          {ACCESSORY_CATEGORIES.map((category) => (
+            <Pressable
+              key={category}
+              style={[
+                styles.brandChip,
+                selectedCategory === category && styles.brandChipActive,
+              ]}
+              onPress={() => setSelectedCategory(category)}
+            >
+              <Text
+                style={[
+                  styles.brandChipText,
+                  selectedCategory === category && styles.brandChipTextActive,
+                ]}
+              >
+                {category}
+              </Text>
+            </Pressable>
+          ))}
+        </ScrollView>
+      </View>
 
       {isLoadingAccessories || isDeletingAccessory ? (
         <View style={styles.loadingContainer}>
@@ -215,7 +219,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#F5F5F7",
-    paddingVertical: 30,
+    paddingTop: 30,
   },
   searchContainer: {
     paddingHorizontal: 16,
@@ -242,17 +246,21 @@ const styles = StyleSheet.create({
   clearButton: {
     padding: 4,
   },
+  filterContainer: { backgroundColor: "#ffffff", minHeight: 70, maxHeight: 70 },
+  filterTitle: {
+    fontSize: 18,
+    fontWeight: "600" as const,
+    color: "#252525",
+    paddingLeft: 14,
+  },
   // BRANCH CHIPS
   brandFilterContainer: {
-    backgroundColor: "#cac8c8",
+    paddingVertical: 10,
+    paddingLeft: 14,
     borderBottomWidth: 1,
-    borderBottomColor: "#E5E5EA",
-    minHeight: 60,
-    maxHeight: 60,
+    borderBottomColor: "#bdb9b9",
   },
   brandFilterContent: {
-    paddingHorizontal: 16,
-    paddingVertical: 12,
     gap: 8,
     height: "auto",
   },
@@ -262,9 +270,10 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingHorizontal: 16,
     borderRadius: 20,
-    backgroundColor: "#F5F5F7",
+    backgroundColor: "#ffffff",
     borderWidth: 1,
     borderColor: "#E5E5EA",
+    elevation: 5,
   },
   brandChipAll: {
     display: "flex",

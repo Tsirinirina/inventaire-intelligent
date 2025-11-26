@@ -1,4 +1,5 @@
 import { PRODUCT_BRANDS } from "@/constants/brands";
+import { PRODUCT_CATEGORIES } from "@/constants/categories";
 import { useInventory } from "@/contexts/InventoryContext";
 import { CameraView, useCameraPermissions } from "expo-camera";
 import { Directory, File, Paths } from "expo-file-system";
@@ -26,12 +27,14 @@ export default function AddProductScreen() {
   const { addProduct, isAddingProduct } = useInventory();
   const [name, setName] = useState("");
   const [brand, setBrand] = useState("");
+  const [category, setCategory] = useState("");
   const [price, setPrice] = useState("");
   const [description, setDescription] = useState("");
   const [quantity, setQuantity] = useState("");
   const [imageUri, setImageUri] = useState<string | undefined>(undefined);
   const [showCamera, setShowCamera] = useState(false);
   const [showBrandPicker, setShowBrandPicker] = useState(false);
+  const [showCategoryPicker, setShowCategoryPicker] = useState(false);
   const [permission, requestPermission] = useCameraPermissions();
   const cameraRef = useRef<CameraView>(null);
 
@@ -111,6 +114,13 @@ export default function AddProductScreen() {
       Alert.alert("Validation Error", "Veuillez sélectionner une marque");
       return;
     }
+    if (!category.trim()) {
+      Alert.alert(
+        "Erreur de validation",
+        "Veuillez sélectionner une catégorie"
+      );
+      return;
+    }
     if (!price.trim() || isNaN(Number(price)) || Number(price) <= 0) {
       Alert.alert("Validation Error", "Veuillez saisir un prix valide");
       return;
@@ -125,7 +135,7 @@ export default function AddProductScreen() {
         name: name.trim(),
         brand: brand.trim(),
         price: Number(price),
-        category: "smartphone",
+        category: category.trim() as any,
         description: description.trim(),
         quantity: Number(quantity),
         dateAdded: new Date().toISOString(),
@@ -245,6 +255,36 @@ export default function AddProductScreen() {
                     }}
                   >
                     <Text style={styles.brandOptionText}>{b}</Text>
+                  </Pressable>
+                ))}
+              </ScrollView>
+            )}
+          </View>
+
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>Catégorie *</Text>
+            <Pressable
+              style={styles.input}
+              onPress={() => setShowCategoryPicker(!showCategoryPicker)}
+            >
+              <Text
+                style={category ? styles.inputText : styles.inputPlaceholder}
+              >
+                {category || "Sélectionnez une catégorie"}
+              </Text>
+            </Pressable>
+            {showCategoryPicker && (
+              <ScrollView style={styles.brandPicker} nestedScrollEnabled>
+                {PRODUCT_CATEGORIES.map((cat) => (
+                  <Pressable
+                    key={cat}
+                    style={styles.brandOption}
+                    onPress={() => {
+                      setCategory(cat);
+                      setShowCategoryPicker(false);
+                    }}
+                  >
+                    <Text style={styles.brandOptionText}>{cat}</Text>
                   </Pressable>
                 ))}
               </ScrollView>
