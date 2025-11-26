@@ -70,8 +70,8 @@ export default function DashboardScreen() {
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Inventory Dashboard</Text>
-        <Text style={styles.headerSubtitle}>Overview of your store</Text>
+        <Text style={styles.headerTitle}>Tableau de bord</Text>
+        <Text style={styles.headerSubtitle}>Aperçu de votre magasin</Text>
       </View>
 
       <View style={styles.alertsSection}>
@@ -101,10 +101,10 @@ export default function DashboardScreen() {
               <AlertCircle size={20} color="#FFF" />
             </View>
             <View style={styles.alertContent}>
-              <Text style={styles.alertTitle}>Low Stock Warning</Text>
+              <Text style={styles.alertTitle}>Stock faible</Text>
               <Text style={styles.alertText}>
-                {stats.lowStockProducts.length} product
-                {stats.lowStockProducts.length !== 1 ? "s" : ""} running low
+                {stats.lowStockProducts.length} produit
+                {stats.lowStockProducts.length !== 1 ? "s" : ""} faible
               </Text>
             </View>
           </Pressable>
@@ -117,7 +117,7 @@ export default function DashboardScreen() {
             <Package size={24} color="#FFF" />
           </View>
           <Text style={styles.statValue}>{stats.totalProducts}</Text>
-          <Text style={styles.statLabel}>Total Products</Text>
+          <Text style={styles.statLabel}>Produit total</Text>
         </View>
 
         <View style={[styles.statCard, styles.statCardSecondary]}>
@@ -125,7 +125,7 @@ export default function DashboardScreen() {
             <BarChart3 size={24} color="#FFF" />
           </View>
           <Text style={styles.statValue}>{stats.totalStock}</Text>
-          <Text style={styles.statLabel}>Total Stock</Text>
+          <Text style={styles.statLabel}>Stock total</Text>
         </View>
 
         <View style={[styles.statCard, styles.statCardSuccess]}>
@@ -133,7 +133,7 @@ export default function DashboardScreen() {
             <DollarSign size={24} color="#FFF" />
           </View>
           <Text style={styles.statValue}>${stats.totalValue.toFixed(0)}</Text>
-          <Text style={styles.statLabel}>Inventory Value</Text>
+          <Text style={styles.statLabel}>Valeur d&apos;inventaire</Text>
         </View>
 
         <View style={[styles.statCard, styles.statCardWarning]}>
@@ -141,18 +141,22 @@ export default function DashboardScreen() {
             <ShoppingCart size={24} color="#FFF" />
           </View>
           <Text style={styles.statValue}>{stats.totalSales}</Text>
-          <Text style={styles.statLabel}>Total Sales</Text>
+          <Text style={styles.statLabel}>Ventes totales</Text>
         </View>
       </View>
 
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Today&apos;s Performance</Text>
+        <Text style={styles.sectionTitle}>
+          Performance d&lsquo;aujourd&apos;hui
+        </Text>
         <View style={styles.performanceCard}>
           <View style={styles.performanceRow}>
             <View style={styles.performanceItem}>
               <TrendingUp size={20} color="#34C759" />
               <Text style={styles.performanceValue}>{stats.todaySales}</Text>
-              <Text style={styles.performanceLabel}>Sales Today</Text>
+              <Text style={styles.performanceLabel}>
+                Ventes aujourd&apos;hui
+              </Text>
             </View>
             <View style={styles.performanceDivider} />
             <View style={styles.performanceItem}>
@@ -160,24 +164,26 @@ export default function DashboardScreen() {
               <Text style={styles.performanceValue}>
                 ${stats.todayRevenue.toFixed(2)}
               </Text>
-              <Text style={styles.performanceLabel}>Revenue Today</Text>
+              <Text style={styles.performanceLabel}>
+                Revenus aujourd&apos;hui
+              </Text>
             </View>
           </View>
         </View>
       </View>
 
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Sales Summary</Text>
+        <Text style={styles.sectionTitle}>Résumé des ventes</Text>
         <View style={styles.summaryCard}>
           <View style={styles.summaryRow}>
-            <Text style={styles.summaryLabel}>Total Revenue</Text>
+            <Text style={styles.summaryLabel}>Revenu total</Text>
             <Text style={styles.summaryValue}>
               ${stats.totalRevenue.toFixed(2)}
             </Text>
           </View>
           <View style={styles.summaryDivider} />
           <View style={styles.summaryRow}>
-            <Text style={styles.summaryLabel}>Average Sale</Text>
+            <Text style={styles.summaryLabel}>Vente moyenne</Text>
             <Text style={styles.summaryValue}>
               $
               {stats.totalSales > 0
@@ -187,7 +193,7 @@ export default function DashboardScreen() {
           </View>
           <View style={styles.summaryDivider} />
           <View style={styles.summaryRow}>
-            <Text style={styles.summaryLabel}>Top Brand</Text>
+            <Text style={styles.summaryLabel}>Marque supérieure</Text>
             <Text style={styles.summaryValue}>
               {stats.topBrand
                 ? `${stats.topBrand.name} (${stats.topBrand.count})`
@@ -203,14 +209,14 @@ export default function DashboardScreen() {
           onPress={() => router.push("/(tabs)/products/add")}
         >
           <Package size={24} color="#007AFF" />
-          <Text style={styles.quickActionText}>Add Product</Text>
+          <Text style={styles.quickActionText}>Ajouter produit</Text>
         </Pressable>
         <Pressable
           style={styles.quickActionButton}
           onPress={() => router.push("/(tabs)/sales")}
         >
           <ShoppingCart size={24} color="#007AFF" />
-          <Text style={styles.quickActionText}>Record Sale</Text>
+          <Text style={styles.quickActionText}>Record de vente</Text>
         </Pressable>
       </View>
     </ScrollView>
@@ -221,6 +227,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#F5F5F7",
+    paddingVertical: 30,
   },
   content: {
     padding: 20,

@@ -19,21 +19,21 @@ export default function TabLayout() {
       <Tabs.Screen
         name="dashboard"
         options={{
-          title: "Dashboard",
+          title: "Bord",
           tabBarIcon: ({ color }) => <BarChart3 color={color} size={24} />,
         }}
       />
       <Tabs.Screen
         name="products"
         options={{
-          title: "Products",
+          title: "Produits",
           tabBarIcon: ({ color }) => <Package color={color} size={24} />,
         }}
       />
       <Tabs.Screen
         name="sales"
         options={{
-          title: "Sales",
+          title: "Ventes",
           tabBarIcon: ({ color }) => <ShoppingCart color={color} size={24} />,
         }}
       />
