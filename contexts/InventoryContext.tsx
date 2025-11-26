@@ -5,11 +5,19 @@ import * as FileSystem from "expo-file-system";
 import * as SQLite from "expo-sqlite";
 import { useEffect, useState } from "react";
 import { Platform } from "react-native";
-import type { NewProduct, NewSale, Product, Sale } from "../types/inventory";
+import type {
+  Accessory,
+  NewAccessory,
+  NewProduct,
+  NewSale,
+  Product,
+  Sale,
+} from "../types/inventory";
 
 const DATABASE_NAME = "inventory.db";
 const PRODUCTS_KEY = "inventory_products";
 const SALES_KEY = "inventory_sales";
+const ACCESSORIES_KEY = "inventory_accessories";
 
 function initDatabase() {
   if (Platform.OS === "web") {
@@ -24,6 +32,7 @@ function initDatabase() {
       name TEXT NOT NULL,
       brand TEXT NOT NULL,
       price REAL NOT NULL,
+      category TEXT NOT NULL,
       description TEXT,
       quantity INTEGER NOT NULL,
       dateAdded TEXT NOT NULL,
@@ -44,6 +53,19 @@ function initDatabase() {
     );
   `);
 
+  db.execSync(`
+  CREATE TABLE IF NOT EXISTS accessories (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    price REAL NOT NULL,
+    category TEXT NOT NULL,
+    description TEXT,
+    quantity INTEGER NOT NULL,
+    dateAdded TEXT NOT NULL,
+    imageUri TEXT
+  );
+`);
+
   return db;
 }
 
@@ -52,6 +74,7 @@ export const [InventoryProvider, useInventory] = createContextHook(() => {
   const queryClient = useQueryClient();
   const [webProducts, setWebProducts] = useState<Product[]>([]);
   const [webSales, setWebSales] = useState<Sale[]>([]);
+  const [webAccessories, setWebAccessories] = useState<Accessory[]>([]);
 
   useEffect(() => {
     if (Platform.OS === "web") {
@@ -59,6 +82,9 @@ export const [InventoryProvider, useInventory] = createContextHook(() => {
         if (data) {
           setWebProducts(JSON.parse(data));
         }
+      });
+      AsyncStorage.getItem(ACCESSORIES_KEY).then((data) => {
+        if (data) setWebAccessories(JSON.parse(data));
       });
       AsyncStorage.getItem(SALES_KEY).then((data) => {
         if (data) {
@@ -96,6 +122,19 @@ export const [InventoryProvider, useInventory] = createContextHook(() => {
     enabled: Platform.OS !== "web" || webSales !== undefined,
   });
 
+  const accessoriesQuery = useQuery({
+    queryKey: ["accessories"],
+    queryFn: (): Accessory[] => {
+      if (Platform.OS === "web") {
+        return webAccessories;
+      }
+      return db!.getAllSync<Accessory>(
+        "SELECT * FROM accessories ORDER BY dateAdded DESC"
+      );
+    },
+    enabled: Platform.OS !== "web" || webAccessories !== undefined,
+  });
+
   const addProductMutation = useMutation({
     mutationFn: async (product: NewProduct) => {
       if (Platform.OS === "web") {
@@ -110,12 +149,13 @@ export const [InventoryProvider, useInventory] = createContextHook(() => {
         return newId;
       }
       const result = db!.runSync(
-        `INSERT INTO products (name, brand, price, description, quantity, dateAdded, imageUri) 
-         VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        `INSERT INTO products (name, brand, price, category, description, quantity, dateAdded, imageUri) 
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           product.name,
           product.brand,
           product.price,
+          product.category,
           product.description,
           product.quantity,
           product.dateAdded,
@@ -141,12 +181,13 @@ export const [InventoryProvider, useInventory] = createContextHook(() => {
       }
       db!.runSync(
         `UPDATE products 
-         SET name = ?, brand = ?, price = ?, description = ?, quantity = ?, imageUri = ?
+         SET name = ?, brand = ?, price = ?, category = ?, description = ?, quantity = ?, imageUri = ?
          WHERE id = ?`,
         [
           product.name,
           product.brand,
           product.price,
+          product.category,
           product.description,
           product.quantity,
           product.imageUri || null,
@@ -178,7 +219,10 @@ export const [InventoryProvider, useInventory] = createContextHook(() => {
             await FileSystem.deleteAsync(product.imageUri);
           }
         } catch (error) {
-          console.error("Error deleting image file:", error);
+          console.error(
+            "Erreur lors de la suppression du fichier image:",
+            error
+          );
         }
       }
       db!.runSync("DELETE FROM products WHERE id = ?", [id]);
@@ -188,17 +232,117 @@ export const [InventoryProvider, useInventory] = createContextHook(() => {
     },
   });
 
+  const addAccessoryMutation = useMutation({
+    mutationFn: async (accessory: NewAccessory) => {
+      if (Platform.OS === "web") {
+        const newId =
+          webAccessories.length > 0
+            ? Math.max(...webAccessories.map((a) => a.id)) + 1
+            : 1;
+
+        const newAccessory: Accessory = { ...accessory, id: newId };
+        const updated = [...webAccessories, newAccessory];
+        setWebAccessories(updated);
+        await AsyncStorage.setItem(ACCESSORIES_KEY, JSON.stringify(updated));
+
+        return newId;
+      }
+
+      const result = db!.runSync(
+        `INSERT INTO accessories (name, price, category, description, quantity, dateAdded, imageUri)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        [
+          accessory.name,
+          accessory.price,
+          accessory.category,
+          accessory.description || null,
+          accessory.quantity,
+          accessory.dateAdded,
+          accessory.imageUri || null,
+        ]
+      );
+
+      return result.lastInsertRowId;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["accessories"] });
+    },
+  });
+
+  const updateAccessoryMutation = useMutation({
+    mutationFn: async (accessory: Accessory) => {
+      if (Platform.OS === "web") {
+        const updated = webAccessories.map((a) =>
+          a.id === accessory.id ? accessory : a
+        );
+        setWebAccessories(updated);
+        await AsyncStorage.setItem(ACCESSORIES_KEY, JSON.stringify(updated));
+        return;
+      }
+
+      db!.runSync(
+        `UPDATE accessories
+         SET name = ?, price = ?, category = ?, description = ?, quantity = ?, imageUri = ?
+       WHERE id = ?`,
+        [
+          accessory.name,
+          accessory.price,
+          accessory.category,
+          accessory.description || null,
+          accessory.quantity,
+          accessory.imageUri || null,
+          accessory.id,
+        ]
+      );
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["accessories"] });
+    },
+  });
+
+  const deleteAccessoryMutation = useMutation({
+    mutationFn: async (id: number) => {
+      if (Platform.OS === "web") {
+        const updated = webAccessories.filter((a) => a.id !== id);
+        setWebAccessories(updated);
+        await AsyncStorage.setItem(ACCESSORIES_KEY, JSON.stringify(updated));
+        return;
+      }
+
+      const accessory = db!.getFirstSync<Accessory>(
+        "SELECT imageUri FROM accessories WHERE id = ?",
+        [id]
+      );
+
+      if (accessory?.imageUri) {
+        try {
+          const fileInfo = await FileSystem.getInfoAsync(accessory.imageUri);
+          if (fileInfo.exists) {
+            await FileSystem.deleteAsync(accessory.imageUri);
+          }
+        } catch (error) {
+          console.error("Error deleting accessory image:", error);
+        }
+      }
+
+      db!.runSync("DELETE FROM accessories WHERE id = ?", [id]);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["accessories"] });
+    },
+  });
+
   const addSaleMutation = useMutation({
     mutationFn: async (sale: NewSale) => {
       if (Platform.OS === "web") {
         const product = webProducts.find((p) => p.id === sale.productId);
 
         if (!product) {
-          throw new Error("Product not found");
+          throw new Error("Produit introuvable");
         }
 
         if (product.quantity < sale.quantity) {
-          throw new Error("Insufficient stock");
+          throw new Error("Stock insuffisant");
         }
 
         const newSaleId =
@@ -227,11 +371,11 @@ export const [InventoryProvider, useInventory] = createContextHook(() => {
       );
 
       if (!product) {
-        throw new Error("Product not found");
+        throw new Error("Produit introuvable");
       }
 
       if (product.quantity < sale.quantity) {
-        throw new Error("Insufficient stock");
+        throw new Error("Stock insuffisant");
       }
 
       db!.runSync(
@@ -261,16 +405,27 @@ export const [InventoryProvider, useInventory] = createContextHook(() => {
 
   return {
     products: productsQuery.data || [],
+    accessories: accessoriesQuery.data || [],
     sales: salesQuery.data || [],
+    // loading
     isLoadingProducts: productsQuery.isLoading,
     isLoadingSales: salesQuery.isLoading,
+    isLoadingAccessories: accessoriesQuery.isLoading,
+    // mutation
     addProduct: addProductMutation.mutateAsync,
     updateProduct: updateProductMutation.mutateAsync,
     deleteProduct: deleteProductMutation.mutateAsync,
     addSale: addSaleMutation.mutateAsync,
+    addAccessory: addAccessoryMutation.mutateAsync,
+    updateAccessory: updateAccessoryMutation.mutateAsync,
+    deleteAccessory: deleteAccessoryMutation.mutateAsync,
+    // mutation loading
     isAddingProduct: addProductMutation.isPending,
     isUpdatingProduct: updateProductMutation.isPending,
     isDeletingProduct: deleteProductMutation.isPending,
     isAddingSale: addSaleMutation.isPending,
+    isAddingAccessory: addAccessoryMutation.isPending,
+    isUpdatingAccessory: updateAccessoryMutation.isPending,
+    isDeletingAccessory: deleteAccessoryMutation.isPending,
   };
 });
