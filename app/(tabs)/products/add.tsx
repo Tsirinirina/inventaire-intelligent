@@ -23,31 +23,20 @@ import {
   View,
 } from "react-native";
 import { DropdownSelect } from "react-native-input-select"; // 🚀
-import { z } from "zod";
+
+import {
+  ProductForm,
+  productFormDefaultValues,
+  productSchema,
+} from "@/types/product.form";
 import type { NewProduct } from "../../../types/inventory";
-
-const schema = z.object({
-  name: z.string().min(1, "Le nom du produit est requis"),
-  brand: z.string().min(1, "La marque est requise"),
-  category: z.string().min(1, "La catégorie est requise"),
-  price: z
-    .string()
-    .min(1, "Prix requis")
-    .refine((v) => !isNaN(Number(v)) && Number(v) > 0, "Prix invalide"),
-  quantity: z
-    .string()
-    .min(1, "Quantité requise")
-    .refine((v) => !isNaN(Number(v)) && Number(v) >= 0, "Quantité invalide"),
-  description: z.string().optional(),
-});
-
-type FormValues = z.infer<typeof schema>;
 
 export default function AddProductScreen() {
   const router = useRouter();
+  /**
+   * Store
+   */
   const { addProduct, isAddingProduct } = useInventory();
-  const [showBrandPicker, setShowBrandPicker] = useState(false);
-  const [showCategoryPicker, setShowCategoryPicker] = useState(false);
   const [permission, requestPermission] = useCameraPermissions();
   const cameraRef = useRef<CameraView>(null);
 
@@ -55,25 +44,14 @@ export default function AddProductScreen() {
     control,
     handleSubmit,
     setValue,
-    watch,
     formState: { errors },
-  } = useForm<FormValues>({
-    resolver: zodResolver(schema),
-    defaultValues: {
-      name: "",
-      brand: "",
-      category: "",
-      price: "",
-      quantity: "",
-      description: "",
-    },
+  } = useForm<ProductForm>({
+    resolver: zodResolver(productSchema),
+    defaultValues: productFormDefaultValues,
   });
 
   const [imageUri, setImageUri] = useState<string | undefined>(undefined);
   const [showCamera, setShowCamera] = useState(false);
-
-  const brand = watch("brand");
-  const category = watch("category");
 
   const handleTakePhoto = async () => {
     if (!permission?.granted) {
@@ -142,7 +120,7 @@ export default function AddProductScreen() {
     }
   };
 
-  const onSubmit = async (data: FormValues) => {
+  const onSubmit = async (data: ProductForm) => {
     try {
       const product: NewProduct = {
         ...data,
@@ -230,7 +208,6 @@ export default function AddProductScreen() {
 
         {/* FORM */}
         <View style={styles.form}>
-          {/* NAME */}
           <Controller
             control={control}
             name="name"
