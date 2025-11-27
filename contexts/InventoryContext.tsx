@@ -1,3 +1,9 @@
+import {
+  ACCESSORIES_KEY,
+  DATABASE_NAME,
+  PRODUCTS_KEY,
+  SALES_KEY,
+} from "@/core/constants/app.config";
 import createContextHook from "@nkzw/create-context-hook";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -13,11 +19,6 @@ import type {
   Product,
   Sale,
 } from "../types/inventory";
-
-const DATABASE_NAME = "inventaire.db";
-const PRODUCTS_KEY = "inventory_products";
-const SALES_KEY = "inventory_sales";
-const ACCESSORIES_KEY = "inventory_accessories";
 
 function initDatabase() {
   if (Platform.OS === "web") {
@@ -41,19 +42,6 @@ function initDatabase() {
   `);
 
   db.execSync(`
-    CREATE TABLE IF NOT EXISTS sales (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      productId INTEGER NOT NULL,
-      productName TEXT NOT NULL,
-      brand TEXT NOT NULL,
-      quantity INTEGER NOT NULL,
-      unitPrice REAL NOT NULL,
-      totalPrice REAL NOT NULL,
-      saleDate TEXT NOT NULL
-    );
-  `);
-
-  db.execSync(`
   CREATE TABLE IF NOT EXISTS accessories (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     name TEXT NOT NULL,
@@ -63,6 +51,20 @@ function initDatabase() {
     quantity INTEGER NOT NULL,
     dateAdded TEXT NOT NULL,
     imageUri TEXT
+  );
+`);
+
+  db.execSync(`
+  CREATE TABLE IF NOT EXISTS sales (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    productUniqueId TEXT NOT NULL,
+    productName TEXT NOT NULL,
+    category TEXT NOT NULL,
+    type TEXT NOT NULL,
+    quantity INTEGER NOT NULL,
+    unitPrice REAL NOT NULL,
+    totalPrice REAL NOT NULL,
+    saleDate TEXT NOT NULL
   );
 `);
 
@@ -117,6 +119,7 @@ export const [InventoryProvider, useInventory] = createContextHook(() => {
       const result = db!.getAllSync<Sale>(
         "SELECT * FROM sales ORDER BY saleDate DESC"
       );
+
       return result;
     },
     enabled: Platform.OS !== "web" || webSales !== undefined,
@@ -336,56 +339,80 @@ export const [InventoryProvider, useInventory] = createContextHook(() => {
   const addSaleMutation = useMutation({
     mutationFn: async (sale: NewSale) => {
       if (Platform.OS === "web") {
-        const product = webProducts.find((p) => p.id === sale.productId);
+        const product = webProducts.find(
+          (p) => `product-${p.id}` === sale.productUniqueId
+        );
+        const accessory = webAccessories?.find(
+          (a) => `accessory-${a.id}` === sale.productUniqueId
+        );
+        const item = product ?? accessory;
 
-        if (!product) {
-          throw new Error("Produit introuvable");
-        }
-
-        if (product.quantity < sale.quantity) {
-          throw new Error("Stock insuffisant");
-        }
+        if (!item) throw new Error("Article introuvable");
+        if (item.quantity < sale.quantity) throw new Error("Stock insuffisant");
 
         const newSaleId =
           webSales.length > 0 ? Math.max(...webSales.map((s) => s.id)) + 1 : 1;
+
         const newSale: Sale = { ...sale, id: newSaleId };
-        const updatedSales = [...webSales, newSale];
-        setWebSales(updatedSales);
-        await AsyncStorage.setItem(SALES_KEY, JSON.stringify(updatedSales));
 
-        const updatedProducts = webProducts.map((p) =>
-          p.id === sale.productId
-            ? { ...p, quantity: p.quantity - sale.quantity }
-            : p
-        );
-        setWebProducts(updatedProducts);
+        setWebSales((prev) => [...prev, newSale]);
         await AsyncStorage.setItem(
-          PRODUCTS_KEY,
-          JSON.stringify(updatedProducts)
+          SALES_KEY,
+          JSON.stringify([...webSales, newSale])
         );
-        return;
+
+        if (product) {
+          setWebProducts((prev) =>
+            prev.map((p) =>
+              `product-${p.id}` === sale.productUniqueId
+                ? { ...p, quantity: p.quantity - sale.quantity }
+                : p
+            )
+          );
+        } else if (accessory) {
+          setWebAccessories((prev) =>
+            prev.map((a) =>
+              `accessory-${a.id}` === sale.productUniqueId
+                ? { ...a, quantity: a.quantity - sale.quantity }
+                : a
+            )
+          );
+        }
+
+        return newSale;
       }
 
-      const product = db!.getFirstSync<Product>(
-        "SELECT * FROM products WHERE id = ?",
-        [sale.productId]
-      );
+      // ---------------------------
+      // Mobile SQLite
+      // ---------------------------
+      // Mobile SQLite
+      let item: Product | Accessory | undefined | any;
 
-      if (!product) {
-        throw new Error("Produit introuvable");
+      if (sale.type === "product") {
+        item = db!.getFirstSync<Product>(
+          "SELECT * FROM products WHERE id = ?",
+          [parseInt(sale.productUniqueId.replace("product-", ""), 10)]
+        );
+      } else if (sale.type === "accessory") {
+        item = db!.getFirstSync<Accessory>(
+          "SELECT * FROM accessories WHERE id = ?",
+          [parseInt(sale.productUniqueId.replace("accessory-", ""), 10)]
+        );
       }
 
-      if (product.quantity < sale.quantity) {
-        throw new Error("Stock insuffisant");
-      }
+      if (!item) throw new Error("Article introuvable");
+      if (item.quantity < sale.quantity) throw new Error("Stock insuffisant");
 
-      db!.runSync(
-        `INSERT INTO sales (productId, productName, brand, quantity, unitPrice, totalPrice, saleDate) 
-         VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      // Insert sale
+      const result = db!.runSync(
+        `INSERT INTO sales 
+    (productUniqueId, productName, category, type, quantity, unitPrice, totalPrice, saleDate)
+   VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
         [
-          sale.productId,
+          sale.productUniqueId,
           sale.productName,
-          sale.brand,
+          sale.category,
+          sale.type,
           sale.quantity,
           sale.unitPrice,
           sale.totalPrice,
@@ -393,14 +420,24 @@ export const [InventoryProvider, useInventory] = createContextHook(() => {
         ]
       );
 
-      db!.runSync("UPDATE products SET quantity = quantity - ? WHERE id = ?", [
-        sale.quantity,
-        sale.productId,
-      ]);
+      // Update stock
+      db!.runSync(
+        sale.type === "product"
+          ? "UPDATE products SET quantity = quantity - ? WHERE id = ?"
+          : "UPDATE accessories SET quantity = quantity - ? WHERE id = ?",
+        [sale.quantity, item.id]
+      );
+
+      return { ...sale, id: result.lastInsertRowId };
     },
-    onSuccess: () => {
+
+    onSuccess: (newSale) => {
+      // Met à jour React Query pour Web et Mobile
+      queryClient.setQueryData(["sales"], (old: Sale[] | undefined) => {
+        return old ? [...old, newSale] : [newSale];
+      });
       queryClient.invalidateQueries({ queryKey: ["products"] });
-      queryClient.invalidateQueries({ queryKey: ["sales"] });
+      queryClient.invalidateQueries({ queryKey: ["accessories"] });
     },
   });
 

@@ -12,9 +12,10 @@ export interface Product {
 
 export interface Sale {
   id: number;
-  productId: number;
+  productUniqueId: string;
   productName: string;
-  brand: string;
+  category: string;
+  type: "product" | "accessory";
   quantity: number;
   unitPrice: number;
   totalPrice: number;
@@ -28,6 +29,28 @@ export interface Accessory {
   category: "housse" | "cable" | "chargeur" | "ecouteur" | "boitier" | "autre";
   description?: string;
   quantity: number;
+  dateAdded: string;
+  imageUri?: string;
+}
+
+export interface ProductAndAccessory {
+  id: number;
+  name: string;
+  brand: string;
+  price: number;
+  description: string;
+  quantity: number;
+  category:
+    | "smartphone"
+    | "laptop"
+    | "tablet"
+    | "autre"
+    | "housse"
+    | "cable"
+    | "chargeur"
+    | "ecouteur"
+    | "boitier"
+    | "autre";
   dateAdded: string;
   imageUri?: string;
 }

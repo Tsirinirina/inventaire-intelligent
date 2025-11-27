@@ -13,64 +13,101 @@ import {
   TextInput,
   View,
 } from "react-native";
-import type { NewSale, Product } from "../../../types/inventory";
+import type { Accessory, NewSale, Product } from "../../../types/inventory";
 
 export default function SalesScreen() {
-  const { products, addSale, isAddingSale } = useInventory();
   const [searchQuery, setSearchQuery] = useState("");
+
+  const { products, accessories, addSale, isAddingSale, sales } =
+    useInventory();
+
+  type ProductAndAccessory =
+    | (Product & { type: "product"; uniqueId: string })
+    | (Accessory & { type: "accessory"; uniqueId: string });
+
   const [cart, setCart] = useState<
-    Map<number, { product: Product; quantity: number }>
+    Map<string, { item: ProductAndAccessory; quantity: number }>
   >(new Map());
 
-  const filteredProducts = useMemo(() => {
-    return products
-      .filter((product) => product.quantity > 0)
-      .filter((product) => {
-        const query = searchQuery.toLowerCase();
-        return (
-          product.name.toLowerCase().includes(query) ||
-          product.brand.toLowerCase().includes(query)
-        );
-      });
-  }, [products, searchQuery]);
+  const getKey = (item: ProductAndAccessory) => `${item.type}-${item.id}`;
+
+  const combinedList = useMemo(() => {
+    const query = searchQuery.toLowerCase();
+
+    const matchProducts = products
+      .filter((p) => p.quantity > 0)
+      .filter(
+        (p) =>
+          p.name.toLowerCase().includes(query) ||
+          p.brand.toLowerCase().includes(query)
+      )
+      .map((p) => ({
+        ...p,
+        type: "product" as const,
+        uniqueId: `product-${p.id}`, // 🔥 ID unique
+      }));
+
+    const matchAccessories = accessories
+      .filter((a) => a.quantity > 0)
+      .filter((a) => a.name.toLowerCase().includes(query))
+      .map((a) => ({
+        ...a,
+        type: "accessory" as const,
+        uniqueId: `accessory-${a.id}`, // 🔥 ID unique
+      }));
+
+    return [...matchProducts, ...matchAccessories];
+  }, [products, accessories, searchQuery]);
 
   const cartItems = useMemo(() => Array.from(cart.values()), [cart]);
 
   const totalAmount = useMemo(() => {
-    return cartItems.reduce(
-      (sum, item) => sum + item.product.price * item.quantity,
+    return Array.from(cart.values()).reduce(
+      (sum, cartItem) => sum + cartItem.item.price * cartItem.quantity,
       0
     );
-  }, [cartItems]);
+  }, [cart]);
 
-  const addToCart = (product: Product) => {
-    const currentItem = cart.get(product.id);
+  const addToCart = (item: ProductAndAccessory) => {
+    const key = item.uniqueId;
+
+    const currentItem = cart.get(key);
     const currentQuantity = currentItem?.quantity || 0;
 
-    if (currentQuantity >= product.quantity) {
+    // 🔥 Vérification du stock max
+    if (currentQuantity >= item.quantity) {
       Alert.alert(
         "Limite de stock",
-        `Seulement ${product.quantity} unités disponibles`
+        `Seulement ${item.quantity} unités disponibles`
       );
       return;
     }
 
     const newCart = new Map(cart);
-    newCart.set(product.id, {
-      product,
+
+    newCart.set(key, {
+      item,
       quantity: currentQuantity + 1,
     });
+
     setCart(newCart);
   };
 
-  const removeFromCart = (productId: number) => {
+  const removeFromCart = (uniqueId: string) => {
     const newCart = new Map(cart);
-    const item = newCart.get(productId);
-    if (item && item.quantity > 1) {
-      newCart.set(productId, { ...item, quantity: item.quantity - 1 });
+    const current = newCart.get(uniqueId);
+
+    if (!current) return;
+
+    if (current.quantity > 1) {
+      newCart.set(uniqueId, {
+        ...current,
+        quantity: current.quantity - 1,
+      });
     } else {
-      newCart.delete(productId);
+      newCart.delete(uniqueId);
     }
+
     setCart(newCart);
   };
 
@@ -90,16 +127,22 @@ export default function SalesScreen() {
     try {
       for (const item of cartItems) {
         const sale: NewSale = {
-          productId: item.product.id,
-          productName: item.product.name,
-          brand: item.product.brand,
+          productUniqueId: item.item.uniqueId,
+          productName: item.item.name,
+          category: item.item.category,
+          type: item.item.type,
           quantity: item.quantity,
-          unitPrice: item.product.price,
-          totalPrice: item.product.price * item.quantity,
+          unitPrice: item.item.price,
+          totalPrice: item.item.price * item.quantity,
           saleDate: new Date().toISOString(),
         };
+
+        console.log("add sales  = ", sale);
+
         await addSale(sale);
       }
+
+      console.log("SALES  = ", sales);
 
       Alert.alert("Succès", "Vente enregistrée avec succès", [
         {
@@ -109,18 +152,20 @@ export default function SalesScreen() {
           },
         },
       ]);
-    } catch (error: unknown) {
+    } catch (error) {
       const errorMessage =
         error instanceof Error
           ? error.message
           : "Échec de l'enregistrement de la vente";
+
       Alert.alert("Erreur", errorMessage);
       console.error("Erreur de vente:", error);
     }
   };
 
-  const renderProduct = ({ item }: { item: Product }) => {
-    const cartItem = cart.get(item.id);
+  const renderProduct = ({ item }: { item: ProductAndAccessory }) => {
+    const key = getKey(item);
+    const cartItem = cart.get(key);
     const inCart = cartItem !== undefined;
 
     return (
@@ -130,10 +175,14 @@ export default function SalesScreen() {
       >
         <View style={styles.productInfo}>
           <Text style={styles.productName}>{item.name}</Text>
-          <Text style={styles.productBrand}>{item.brand}</Text>
+          {"brand" in item && (
+            <Text style={styles.productBrand}>{item.brand}</Text>
+          )}
           <Text style={styles.productStock}>Stock: {item.quantity}</Text>
         </View>
+
         <View style={styles.productRight}>
+          <Text style={styles.productCategory}>{item.category}</Text>
           <Text style={styles.productPrice}>{formatAriary(item.price)}</Text>
           {inCart && <Text style={styles.inCartBadge}>Dans le panier</Text>}
         </View>
@@ -144,7 +193,7 @@ export default function SalesScreen() {
   const renderCartItem = ({
     item,
   }: {
-    item: { product: Product; quantity: number };
+    item: { product: ProductAndAccessory; quantity: number };
   }) => (
     <View style={styles.cartItem}>
       <View style={styles.cartItemInfo}>
@@ -158,7 +207,7 @@ export default function SalesScreen() {
       <View style={styles.cartItemControls}>
         <Pressable
           style={styles.quantityButton}
-          onPress={() => removeFromCart(item.product.id)}
+          onPress={() => removeFromCart(item.product.uniqueId)}
         >
           <Minus size={16} color="#007AFF" />
         </Pressable>
@@ -198,7 +247,7 @@ export default function SalesScreen() {
           )}
         </View>
 
-        {filteredProducts.length === 0 ? (
+        {combinedList.length === 0 ? (
           <View style={styles.emptyState}>
             <Text style={styles.emptyText}>
               {searchQuery ? "Aucun produit trouvé" : "Aucun produit en stock"}
@@ -206,9 +255,9 @@ export default function SalesScreen() {
           </View>
         ) : (
           <FlatList
-            data={filteredProducts}
+            data={combinedList}
             renderItem={renderProduct}
-            keyExtractor={(item) => item.id.toString()}
+            keyExtractor={(item) => item.uniqueId.toString()}
             contentContainerStyle={styles.productList}
             showsVerticalScrollIndicator={false}
           />
@@ -238,8 +287,12 @@ export default function SalesScreen() {
             style={styles.cartList}
             showsVerticalScrollIndicator={false}
           >
-            {cartItems.map((item) => (
-              <View key={item.product.id}>{renderCartItem({ item })}</View>
+            {cartItems.map((cartItem) => (
+              <View key={cartItem.item.uniqueId}>
+                {renderCartItem({
+                  item: { product: cartItem.item, quantity: cartItem.quantity },
+                })}
+              </View>
             ))}
           </ScrollView>
         )}
@@ -355,6 +408,11 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: "700" as const,
     color: "#007AFF",
+  },
+  productCategory: {
+    fontSize: 16,
+    fontWeight: "700" as const,
+    color: "#2f265a",
   },
   inCartBadge: {
     fontSize: 12,

@@ -43,11 +43,16 @@ export default function DashboardScreen() {
 
     // Sales memo
     const totalSales = sales.length;
-    const totalRevenue = sales.reduce((sum, s) => sum + s.totalPrice, 0);
-    const todaySales = sales.filter(
-      (s) => new Date(s.saleDate).toDateString() === new Date().toDateString()
-    );
-    const todayRevenue = todaySales.reduce((sum, s) => sum + s.totalPrice, 0);
+    console.log("total = ", sales);
+
+    const totalRevenue = 0;
+    // const totalRevenue = sales.reduce((sum, s) => sum + s.totalPrice, 0);
+    // const todaySales = sales.filter(
+    //   (s) => new Date(s.saleDate).toDateString() === new Date().toDateString()
+    // );
+    const todaySales = [] as any;
+    // const todayRevenue = todaySales.reduce((sum, s) => sum + s.totalPrice, 0);
+    const todayRevenue = 0;
 
     const brandStats = products.reduce((acc, p) => {
       acc[p.brand] = (acc[p.brand] || 0) + 1;
@@ -92,9 +97,9 @@ export default function DashboardScreen() {
       ouOfStockAccessories,
       totalGain,
     };
-  }, [products, sales]);
+  }, [products, sales, accessories]);
 
-  if (isLoadingProducts || isLoadingSales) {
+  if (isLoadingProducts || isLoadingSales || isLoadingAccessories) {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color="#007AFF" />

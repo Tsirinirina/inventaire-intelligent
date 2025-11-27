@@ -1,6 +1,7 @@
 import { PRODUCT_BRANDS } from "@/constants/brands";
 import { PRODUCT_CATEGORIES } from "@/constants/categories";
 import { useInventory } from "@/contexts/InventoryContext";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { CameraView, useCameraPermissions } from "expo-camera";
 import { Directory, File, Paths } from "expo-file-system";
 import { Image } from "expo-image";
@@ -8,6 +9,7 @@ import * as ImagePicker from "expo-image-picker";
 import { useRouter } from "expo-router";
 import { Camera, Check, Image as ImageIcon, X } from "lucide-react-native";
 import { useRef, useState } from "react";
+import { Controller, useForm } from "react-hook-form";
 import {
   ActivityIndicator,
   Alert,
@@ -20,23 +22,58 @@ import {
   TextInput,
   View,
 } from "react-native";
+import { DropdownSelect } from "react-native-input-select"; // 🚀
+import { z } from "zod";
 import type { NewProduct } from "../../../types/inventory";
+
+const schema = z.object({
+  name: z.string().min(1, "Le nom du produit est requis"),
+  brand: z.string().min(1, "La marque est requise"),
+  category: z.string().min(1, "La catégorie est requise"),
+  price: z
+    .string()
+    .min(1, "Prix requis")
+    .refine((v) => !isNaN(Number(v)) && Number(v) > 0, "Prix invalide"),
+  quantity: z
+    .string()
+    .min(1, "Quantité requise")
+    .refine((v) => !isNaN(Number(v)) && Number(v) >= 0, "Quantité invalide"),
+  description: z.string().optional(),
+});
+
+type FormValues = z.infer<typeof schema>;
 
 export default function AddProductScreen() {
   const router = useRouter();
   const { addProduct, isAddingProduct } = useInventory();
-  const [name, setName] = useState("");
-  const [brand, setBrand] = useState("");
-  const [category, setCategory] = useState("");
-  const [price, setPrice] = useState("");
-  const [description, setDescription] = useState("");
-  const [quantity, setQuantity] = useState("");
-  const [imageUri, setImageUri] = useState<string | undefined>(undefined);
-  const [showCamera, setShowCamera] = useState(false);
   const [showBrandPicker, setShowBrandPicker] = useState(false);
   const [showCategoryPicker, setShowCategoryPicker] = useState(false);
   const [permission, requestPermission] = useCameraPermissions();
   const cameraRef = useRef<CameraView>(null);
+
+  const {
+    control,
+    handleSubmit,
+    setValue,
+    watch,
+    formState: { errors },
+  } = useForm<FormValues>({
+    resolver: zodResolver(schema),
+    defaultValues: {
+      name: "",
+      brand: "",
+      category: "",
+      price: "",
+      quantity: "",
+      description: "",
+    },
+  });
+
+  const [imageUri, setImageUri] = useState<string | undefined>(undefined);
+  const [showCamera, setShowCamera] = useState(false);
+
+  const brand = watch("brand");
+  const category = watch("category");
 
   const handleTakePhoto = async () => {
     if (!permission?.granted) {
@@ -105,39 +142,16 @@ export default function AddProductScreen() {
     }
   };
 
-  const handleSave = async () => {
-    if (!name.trim()) {
-      Alert.alert("Erreur de validation", "Veuillez saisir le nom du produit");
-      return;
-    }
-    if (!brand.trim()) {
-      Alert.alert("Validation Error", "Veuillez sélectionner une marque");
-      return;
-    }
-    if (!category.trim()) {
-      Alert.alert(
-        "Erreur de validation",
-        "Veuillez sélectionner une catégorie"
-      );
-      return;
-    }
-    if (!price.trim() || isNaN(Number(price)) || Number(price) <= 0) {
-      Alert.alert("Validation Error", "Veuillez saisir un prix valide");
-      return;
-    }
-    if (!quantity.trim() || isNaN(Number(quantity)) || Number(quantity) < 0) {
-      Alert.alert("Validation Error", "Veuillez saisir une quantité valide");
-      return;
-    }
-
+  const onSubmit = async (data: FormValues) => {
     try {
       const product: NewProduct = {
-        name: name.trim(),
-        brand: brand.trim(),
-        price: Number(price),
-        category: category.trim() as any,
-        description: description.trim(),
-        quantity: Number(quantity),
+        ...data,
+        name: data.name.trim(),
+        brand: data.brand.trim(),
+        category: data.category as any,
+        price: Number(data.price),
+        quantity: Number(data.quantity),
+        description: data.description?.trim() as any,
         dateAdded: new Date().toISOString(),
         imageUri,
       };
@@ -180,22 +194,13 @@ export default function AddProductScreen() {
   }
 
   return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
-    >
-      <ScrollView
-        style={styles.scrollView}
-        contentContainerStyle={styles.scrollContent}
-      >
+    <KeyboardAvoidingView style={styles.container}>
+      <ScrollView contentContainerStyle={styles.scrollContent}>
+        {/* IMAGE SECTION */}
         <View style={styles.imageSection}>
           {imageUri ? (
             <View>
-              <Image
-                source={{ uri: imageUri }}
-                style={styles.productImage}
-                contentFit="cover"
-              />
+              <Image source={{ uri: imageUri }} style={styles.productImage} />
               <Pressable
                 style={styles.removeImageButton}
                 onPress={() => setImageUri(undefined)}
@@ -209,11 +214,13 @@ export default function AddProductScreen() {
               <Text style={styles.imagePlaceholderText}>Aucune image</Text>
             </View>
           )}
+
           <View style={styles.imageButtons}>
             <Pressable style={styles.imageButton} onPress={handleTakePhoto}>
               <Camera size={20} color="#007AFF" />
               <Text style={styles.imageButtonText}>Caméra</Text>
             </Pressable>
+
             <Pressable style={styles.imageButton} onPress={handlePickImage}>
               <ImageIcon size={20} color="#007AFF" />
               <Text style={styles.imageButtonText}>Galerie</Text>
@@ -221,118 +228,155 @@ export default function AddProductScreen() {
           </View>
         </View>
 
+        {/* FORM */}
         <View style={styles.form}>
+          {/* NAME */}
+          <Controller
+            control={control}
+            name="name"
+            render={({ field }) => (
+              <View style={styles.inputGroup}>
+                <Text style={styles.label}>Nom du produit *</Text>
+                <TextInput
+                  value={field.value}
+                  onChangeText={field.onChange}
+                  onBlur={field.onBlur}
+                  style={styles.input}
+                  placeholder="Ex: Samsung A54"
+                  placeholderTextColor="#999"
+                />
+                {errors.name && (
+                  <Text style={styles.error}>{errors.name.message}</Text>
+                )}
+              </View>
+            )}
+          />
+
+          {/* BRAND SELECT */}
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Nom du produit *</Text>
-            <TextInput
-              style={styles.input}
-              value={name}
-              onChangeText={setName}
-              placeholder="e.x., iPhone 15 Pro Max"
-              placeholderTextColor="#999"
+            <Controller
+              control={control}
+              name="brand"
+              render={({ field, fieldState }) => (
+                <DropdownSelect
+                  label="Marque *"
+                  labelStyle={styles.label}
+                  dropdownStyle={styles.inputSelect}
+                  placeholderStyle={styles.inputPlaceholder}
+                  placeholder="Sélectionnez une marque"
+                  selectedValue={field.value}
+                  onValueChange={(value) => setValue("brand", value as any)}
+                  options={PRODUCT_BRANDS.map((b) => ({
+                    label: b,
+                    value: b,
+                  }))}
+                />
+              )}
             />
-          </View>
 
-          <View style={styles.inputGroup}>
-            <Text style={styles.label}>Marque *</Text>
-            <Pressable
-              style={styles.input}
-              onPress={() => setShowBrandPicker(!showBrandPicker)}
-            >
-              <Text style={brand ? styles.inputText : styles.inputPlaceholder}>
-                {brand || "Sélectionnez une marque"}
-              </Text>
-            </Pressable>
-            {showBrandPicker && (
-              <ScrollView style={styles.brandPicker} nestedScrollEnabled>
-                {PRODUCT_BRANDS.map((b) => (
-                  <Pressable
-                    key={b}
-                    style={styles.brandOption}
-                    onPress={() => {
-                      setBrand(b);
-                      setShowBrandPicker(false);
-                    }}
-                  >
-                    <Text style={styles.brandOptionText}>{b}</Text>
-                  </Pressable>
-                ))}
-              </ScrollView>
+            {errors.brand && (
+              <Text style={styles.error}>{errors.brand.message}</Text>
             )}
           </View>
 
+          {/* CATEGORY SELECT NEW  */}
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Catégorie *</Text>
-            <Pressable
-              style={styles.input}
-              onPress={() => setShowCategoryPicker(!showCategoryPicker)}
-            >
-              <Text
-                style={category ? styles.inputText : styles.inputPlaceholder}
-              >
-                {category || "Sélectionnez une catégorie"}
-              </Text>
-            </Pressable>
-            {showCategoryPicker && (
-              <ScrollView style={styles.brandPicker} nestedScrollEnabled>
-                {PRODUCT_CATEGORIES.map((cat) => (
-                  <Pressable
-                    key={cat}
-                    style={styles.brandOption}
-                    onPress={() => {
-                      setCategory(cat);
-                      setShowCategoryPicker(false);
-                    }}
-                  >
-                    <Text style={styles.brandOptionText}>{cat}</Text>
-                  </Pressable>
-                ))}
-              </ScrollView>
+            <Controller
+              control={control}
+              name="category"
+              render={({ field, fieldState }) => (
+                <DropdownSelect
+                  label="Catégorie *"
+                  labelStyle={styles.label}
+                  dropdownStyle={styles.inputSelect}
+                  placeholderStyle={styles.inputPlaceholder}
+                  placeholder="Sélectionnez une catégorie"
+                  selectedValue={field.value}
+                  onValueChange={(value) => setValue("category", value as any)}
+                  options={PRODUCT_CATEGORIES.map((c) => ({
+                    label: c,
+                    value: c,
+                  }))}
+                />
+              )}
+            />
+
+            {errors.category && (
+              <Text style={styles.error}>{errors.category.message}</Text>
             )}
           </View>
 
+          {/* PRICE + QUANTITY */}
           <View style={styles.row}>
-            <View style={[styles.inputGroup, styles.flex1]}>
-              <Text style={styles.label}>Prix (Ariary) *</Text>
-              <TextInput
-                style={styles.input}
-                value={price}
-                onChangeText={setPrice}
-                placeholder="000"
-                placeholderTextColor="#999"
-                keyboardType="decimal-pad"
-              />
-            </View>
+            <Controller
+              control={control}
+              name="price"
+              render={({ field }) => (
+                <View style={[styles.inputGroup, styles.flex1]}>
+                  <Text style={styles.label}>Prix *</Text>
+                  <TextInput
+                    value={field.value}
+                    onChangeText={field.onChange}
+                    onBlur={field.onBlur}
+                    style={styles.input}
+                    keyboardType="decimal-pad"
+                    placeholder="0"
+                    placeholderTextColor="#999"
+                  />
+                  {errors.price && (
+                    <Text style={styles.error}>{errors.price.message}</Text>
+                  )}
+                </View>
+              )}
+            />
 
-            <View style={[styles.inputGroup, styles.flex1]}>
-              <Text style={styles.label}>Quantité *</Text>
-              <TextInput
-                style={styles.input}
-                value={quantity}
-                onChangeText={setQuantity}
-                placeholder="0"
-                placeholderTextColor="#999"
-                keyboardType="number-pad"
-              />
-            </View>
-          </View>
-
-          <View style={styles.inputGroup}>
-            <Text style={styles.label}>Description</Text>
-            <TextInput
-              style={[styles.input, styles.textArea]}
-              value={description}
-              onChangeText={setDescription}
-              placeholder="Description du produit"
-              placeholderTextColor="#999"
-              multiline
-              numberOfLines={6}
-              textAlignVertical="top"
+            <Controller
+              control={control}
+              name="quantity"
+              render={({ field }) => (
+                <View style={[styles.inputGroup, styles.flex1]}>
+                  <Text style={styles.label}>Quantité *</Text>
+                  <TextInput
+                    value={field.value}
+                    onChangeText={field.onChange}
+                    onBlur={field.onBlur}
+                    style={styles.input}
+                    keyboardType="number-pad"
+                    placeholder="0"
+                    placeholderTextColor="#999"
+                  />
+                  {errors.quantity && (
+                    <Text style={styles.error}>{errors.quantity.message}</Text>
+                  )}
+                </View>
+              )}
             />
           </View>
+
+          {/* DESCRIPTION */}
+          <Controller
+            control={control}
+            name="description"
+            render={({ field }) => (
+              <View style={styles.inputGroup}>
+                <Text style={styles.label}>Description</Text>
+                <TextInput
+                  value={field.value}
+                  onChangeText={field.onChange}
+                  onBlur={field.onBlur}
+                  style={[styles.input, styles.textArea]}
+                  placeholder="Description du produit"
+                  placeholderTextColor="#999"
+                  multiline
+                  numberOfLines={5}
+                />
+              </View>
+            )}
+          />
         </View>
       </ScrollView>
 
+      {/* SAVE BUTTON */}
       <View style={styles.footer}>
         <Pressable
           style={[
@@ -340,7 +384,7 @@ export default function AddProductScreen() {
             styles.saveButton,
             isAddingProduct && styles.buttonDisabled,
           ]}
-          onPress={handleSave}
+          onPress={handleSubmit(onSubmit)}
           disabled={isAddingProduct}
         >
           {isAddingProduct ? (
@@ -476,6 +520,16 @@ const styles = StyleSheet.create({
     backgroundColor: "#FFF",
     borderRadius: 10,
     paddingHorizontal: 16,
+    paddingVertical: 20,
+    fontSize: 16,
+    color: "#000",
+    borderWidth: 1,
+    borderColor: "#E5E5EA",
+  },
+  inputSelect: {
+    backgroundColor: "#FFF",
+    borderRadius: 10,
+    paddingHorizontal: 16,
     paddingVertical: 14,
     fontSize: 16,
     color: "#000",
@@ -547,4 +601,55 @@ const styles = StyleSheet.create({
   buttonDisabled: {
     opacity: 0.6,
   },
+  error: {
+    fontSize: 14,
+    color: "#FF3B30",
+  },
+  picker: {},
+  pickerOption: {},
+  pickerOptionText: {},
 });
+// const handleSave = async () => {
+//   if (!name.trim()) {
+//     Alert.alert("Erreur de validation", "Veuillez saisir le nom du produit");
+//     return;
+//   }
+//   if (!brand.trim()) {
+//     Alert.alert("Validation Error", "Veuillez sélectionner une marque");
+//     return;
+//   }
+//   if (!category.trim()) {
+//     Alert.alert(
+//       "Erreur de validation",
+//       "Veuillez sélectionner une catégorie"
+//     );
+//     return;
+//   }
+//   if (!price.trim() || isNaN(Number(price)) || Number(price) <= 0) {
+//     Alert.alert("Validation Error", "Veuillez saisir un prix valide");
+//     return;
+//   }
+//   if (!quantity.trim() || isNaN(Number(quantity)) || Number(quantity) < 0) {
+//     Alert.alert("Validation Error", "Veuillez saisir une quantité valide");
+//     return;
+//   }
+
+//   try {
+//     const product: NewProduct = {
+//       name: name.trim(),
+//       brand: brand.trim(),
+//       price: Number(price),
+//       category: category.trim() as any,
+//       description: description.trim(),
+//       quantity: Number(quantity),
+//       dateAdded: new Date().toISOString(),
+//       imageUri,
+//     };
+
+//     await addProduct(product);
+//     router.back();
+//   } catch (error) {
+//     console.error("Error adding product:", error);
+//     Alert.alert("Erreur", "Impossible d'ajouter le produit");
+//   }
+// };
