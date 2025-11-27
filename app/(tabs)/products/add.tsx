@@ -142,6 +142,9 @@ export default function AddProductScreen() {
     }
   };
 
+  // const [isEnabled, setIsEnabled] = useState(false);
+  // const toggleSwitch = () => setIsEnabled((previousState) => !previousState);
+
   if (showCamera) {
     return (
       <KeyboardAvoidingView
@@ -203,6 +206,14 @@ export default function AddProductScreen() {
               <ImageIcon size={20} color="#007AFF" />
               <Text style={styles.imageButtonText}>Galerie</Text>
             </Pressable>
+
+            {/* <Switch
+              trackColor={{ false: "#767577", true: "#81b0ff" }}
+              thumbColor={isEnabled ? "#f5dd4b" : "#f4f3f4"}
+              ios_backgroundColor="#3e3e3e"
+              onValueChange={toggleSwitch}
+              value={isEnabled}
+            /> */}
           </View>
         </View>
 
