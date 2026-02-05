@@ -59,7 +59,7 @@ export default function AddProductScreen() {
       if (!result.granted) {
         Alert.alert(
           "Autorisation requise",
-          "L'autorisation de prendre des photos est requise."
+          "L'autorisation de prendre des photos est requise.",
         );
         return;
       }
@@ -166,6 +166,7 @@ export default function AddProductScreen() {
               >
                 <View style={styles.captureButtonInner} />
               </Pressable>
+
               <View style={styles.cameraButton} />
             </View>
           </CameraView>

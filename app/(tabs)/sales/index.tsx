@@ -39,7 +39,7 @@ export default function SalesScreen() {
       .filter(
         (p) =>
           p.name.toLowerCase().includes(query) ||
-          p.brand.toLowerCase().includes(query)
+          p.brand.toLowerCase().includes(query),
       )
       .map((p) => ({
         ...p,
@@ -64,7 +64,7 @@ export default function SalesScreen() {
   const totalAmount = useMemo(() => {
     return Array.from(cart.values()).reduce(
       (sum, cartItem) => sum + cartItem.item.price * cartItem.quantity,
-      0
+      0,
     );
   }, [cart]);
 
@@ -78,7 +78,7 @@ export default function SalesScreen() {
     if (currentQuantity >= item.quantity) {
       Alert.alert(
         "Limite de stock",
-        `Seulement ${item.quantity} unités disponibles`
+        `Seulement ${item.quantity} unités disponibles`,
       );
       return;
     }
@@ -119,7 +119,7 @@ export default function SalesScreen() {
     if (cartItems.length === 0) {
       Alert.alert(
         "Panier vide",
-        "Veuillez ajouter les articles à votre panier avant de finaliser votre commande."
+        "Veuillez ajouter les articles à votre panier avant de finaliser votre commande.",
       );
       return;
     }
@@ -137,12 +137,8 @@ export default function SalesScreen() {
           saleDate: new Date().toISOString(),
         };
 
-        console.log("add sales  = ", sale);
-
         await addSale(sale);
       }
-
-      console.log("SALES  = ", sales);
 
       Alert.alert("Succès", "Vente enregistrée avec succès", [
         {
