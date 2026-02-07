@@ -18,6 +18,7 @@ export interface Sale {
 }
 
 export type NewSale = Omit<Sale, "id">;
+export const SALE_QUERY_KEY = "sale";
 
 export interface SellableItem {
   id: number;

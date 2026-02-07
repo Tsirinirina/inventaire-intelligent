@@ -15,6 +15,8 @@ export interface Accessory {
   quantity: number;
   imageUri?: string;
   createdAt: string;
+  stockUpdatedAt: string;
 }
 
 export type NewAccessory = Omit<Accessory, "id">;
+export const ACCESSORY_QUERY_KEY = "accessory";

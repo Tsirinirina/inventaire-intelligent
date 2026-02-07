@@ -47,7 +47,7 @@ export function addProduct(db: SQLiteDatabase, dto: NewProduct): number {
 export function updateProduct(db: SQLiteDatabase, dto: Product): boolean {
   db!.runSync(
     `UPDATE products 
-         SET name = ?, brand = ?, category = ?, description = ?, basePrice = ?, quantity = ?, imageUri = ?,createdAt = ?, stockUpdatedAt = ?
+         SET name = ?, brand = ?, category = ?, description = ?, basePrice = ?, quantity = ?, imageUri = ?, createdAt = ?, stockUpdatedAt = ?
          WHERE id = ?`,
     [
       dto.name,

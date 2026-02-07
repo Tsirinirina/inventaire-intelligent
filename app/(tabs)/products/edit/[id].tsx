@@ -5,7 +5,7 @@ import {
   ProductForm,
   productFormDefaultValues,
   productSchema,
-} from "@/core/types/product.form";
+} from "@/core/forms/product.form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { CameraView, useCameraPermissions } from "expo-camera";
 import { Directory, File, Paths } from "expo-file-system";

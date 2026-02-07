@@ -28,7 +28,7 @@ import {
   ProductForm,
   productFormDefaultValues,
   productSchema,
-} from "@/core/types/product.form";
+} from "@/core/forms/product.form";
 import type { NewProduct } from "../../../core/types/inventory";
 
 export default function AddProductScreen() {

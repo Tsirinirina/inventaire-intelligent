@@ -6,3 +6,4 @@ export interface Seller {
 }
 
 export type NewSeller = Omit<Seller, "id">;
+export const SELLER_QUERY_KEY = "seller";

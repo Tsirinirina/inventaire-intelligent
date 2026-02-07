@@ -1,267 +1,147 @@
-import { getDatabase } from "@/core/database";
-import { Accessory } from "@/core/entity/accessory.entity";
-import { NewProduct, Product } from "@/core/entity/product.entity";
-import { Sale } from "@/core/entity/sale.entity";
 import createContextHook from "@nkzw/create-context-hook";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import * as FileSystem from "expo-file-system";
+import { useQueryClient } from "@tanstack/react-query";
+import { useMemo } from "react";
+import { Accessory, ACCESSORY_QUERY_KEY } from "../entity/accessory.entity";
+import { Product, PRODUCT_QUERY_KEY } from "../entity/product.entity";
+import { Sale, SALE_QUERY_KEY } from "../entity/sale.entity";
+import { Seller, SELLER_QUERY_KEY } from "../entity/seller.entity";
 
 export const [InventoryProvider, useInventory] = createContextHook(() => {
-  const db = getDatabase();
   const queryClient = useQueryClient();
 
-  const productsQuery = useQuery({
-    queryKey: ["products"],
-    queryFn: (): Product[] => {
-      const result = db!.getAllSync<Product>(
-        "SELECT * FROM products ORDER BY dateAdded DESC",
-      );
-      return result;
-    },
-  });
+  const products = useMemo(
+    () => queryClient.getQueryData<Product[]>([PRODUCT_QUERY_KEY]) ?? [],
+    [queryClient],
+  );
 
-  const salesQuery = useQuery({
-    queryKey: ["sales"],
-    queryFn: (): Sale[] => {
-      const result = db!.getAllSync<Sale>(
-        "SELECT * FROM sales ORDER BY saleDate DESC",
-      );
+  const accessories = useMemo(
+    () => queryClient.getQueryData<Accessory[]>([ACCESSORY_QUERY_KEY]) ?? [],
+    [queryClient],
+  );
 
-      return result;
-    },
-  });
+  const sales = useMemo(
+    () => queryClient.getQueryData<Sale[]>([SALE_QUERY_KEY]) ?? [],
+    [queryClient],
+  );
 
-  const accessoriesQuery = useQuery({
-    queryKey: ["accessories"],
-    queryFn: (): Accessory[] => {
-      return db!.getAllSync<Accessory>(
-        "SELECT * FROM accessories ORDER BY dateAdded DESC",
-      );
-    },
-  });
+  const sellers = useMemo(
+    () => queryClient.getQueryData<Seller[]>([SELLER_QUERY_KEY]) ?? [],
+    [queryClient],
+  );
 
-  const addProductMutation = useMutation({
-    mutationFn: async (product: NewProduct) => {
-      const result = db!.runSync(
-        `INSERT INTO products (name, brand, price, category, description, quantity, dateAdded, imageUri) 
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-        [
-          product.name,
-          product.brand,
-          product.price,
-          product.category,
-          product.description,
-          product.quantity,
-          product.dateAdded,
-          product.imageUri || null,
-        ],
-      );
-      return result.lastInsertRowId;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["products"] });
-    },
-  });
+  // 📊 Calculs métiers (memoisés)
+  const stats = useMemo(() => {
+    /* =======================
+       PRODUCTS
+    ======================== */
+    const totalProducts = products.length;
 
-  const updateProductMutation = useMutation({
-    mutationFn: async (product: Product) => {
-      db!.runSync(
-        `UPDATE products 
-         SET name = ?, brand = ?, price = ?, category = ?, description = ?, quantity = ?, imageUri = ?
-         WHERE id = ?`,
-        [
-          product.name,
-          product.brand,
-          product.basePrice,
-          product.category,
-          product.description,
-          product.quantity,
-          product.imageUri || null,
-          product.id,
-        ],
-      );
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["products"] });
-    },
-  });
+    const totalProductStock = products.reduce((sum, p) => sum + p.quantity, 0);
 
-  const deleteProductMutation = useMutation({
-    mutationFn: async (id: number) => {
-      const product = db!.getFirstSync<Product>(
-        "SELECT imageUri FROM products WHERE id = ?",
-        [id],
-      );
-      if (product?.imageUri) {
-        try {
-          const fileInfo = await FileSystem.getInfoAsync(product.imageUri);
-          if (fileInfo.exists) {
-            await FileSystem.deleteAsync(product.imageUri);
-          }
-        } catch (error) {
-          console.error(
-            "Erreur lors de la suppression du fichier image:",
-            error,
-          );
-        }
-      }
-      db!.runSync("DELETE FROM products WHERE id = ?", [id]);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["products"] });
-    },
-  });
+    const totalProductPrice = products.reduce(
+      (sum, p) => sum + p.basePrice * p.quantity,
+      0,
+    );
 
-  const addAccessoryMutation = useMutation({
-    mutationFn: async (accessory: NewAccessory) => {
-      const result = db!.runSync(
-        `INSERT INTO accessories (name, price, category, description, quantity, dateAdded, imageUri)
-       VALUES (?, ?, ?, ?, ?, ?, ?)`,
-        [
-          accessory.name,
-          accessory.price,
-          accessory.category,
-          accessory.description || null,
-          accessory.quantity,
-          accessory.dateAdded,
-          accessory.imageUri || null,
-        ],
-      );
+    const lowStockProducts = products.filter((p) => p.quantity <= 5);
+    const outOfStockProducts = products.filter((p) => p.quantity === 0);
 
-      return result.lastInsertRowId;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["accessories"] });
-    },
-  });
+    // Brand stats (top brand)
+    const brandStats = products.reduce(
+      (acc, p) => {
+        acc[p.brand] = (acc[p.brand] || 0) + 1;
+        return acc;
+      },
+      {} as Record<string, number>,
+    );
 
-  const updateAccessoryMutation = useMutation({
-    mutationFn: async (accessory: Accessory) => {
-      db!.runSync(
-        `UPDATE accessories
-         SET name = ?, price = ?, category = ?, description = ?, quantity = ?, imageUri = ?
-       WHERE id = ?`,
-        [
-          accessory.name,
-          accessory.price,
-          accessory.category,
-          accessory.description || null,
-          accessory.quantity,
-          accessory.imageUri || null,
-          accessory.id,
-        ],
-      );
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["accessories"] });
-    },
-  });
+    const topBrandEntry = Object.entries(brandStats).sort(
+      (a, b) => b[1] - a[1],
+    )[0];
 
-  const deleteAccessoryMutation = useMutation({
-    mutationFn: async (id: number) => {
-      const accessory = db!.getFirstSync<Accessory>(
-        "SELECT imageUri FROM accessories WHERE id = ?",
-        [id],
-      );
+    const topBrand = topBrandEntry
+      ? { name: topBrandEntry[0], count: topBrandEntry[1] }
+      : null;
 
-      if (accessory?.imageUri) {
-        try {
-          const fileInfo = await FileSystem.getInfoAsync(accessory.imageUri);
-          if (fileInfo.exists) {
-            await FileSystem.deleteAsync(accessory.imageUri);
-          }
-        } catch (error) {
-          console.error("Error deleting accessory image:", error);
-        }
-      }
+    /* =======================
+       ACCESSORIES
+    ======================== */
+    const totalAccessory = accessories.length;
 
-      db!.runSync("DELETE FROM accessories WHERE id = ?", [id]);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["accessories"] });
-    },
-  });
+    const totalAccessoryStock = accessories.reduce(
+      (sum, a) => sum + a.quantity,
+      0,
+    );
 
-  const addSaleMutation = useMutation({
-    mutationFn: async (sale: NewSale) => {
-      let item: Product | Accessory | undefined | any;
+    const totalAccessoryPrice = accessories.reduce(
+      (sum, a) => sum + a.basePrice * a.quantity,
+      0,
+    );
 
-      if (sale.type === "product") {
-        item = db!.getFirstSync<Product>(
-          "SELECT * FROM products WHERE id = ?",
-          [parseInt(sale.productUniqueId.replace("product-", ""), 10)],
-        );
-      } else if (sale.type === "accessory") {
-        item = db!.getFirstSync<Accessory>(
-          "SELECT * FROM accessories WHERE id = ?",
-          [parseInt(sale.productUniqueId.replace("accessory-", ""), 10)],
-        );
-      }
+    const lowStockAccessories = accessories.filter((a) => a.quantity <= 5);
+    const outOfStockAccessories = accessories.filter((a) => a.quantity === 0);
 
-      if (!item) throw new Error("Article introuvable");
-      if (item.quantity < sale.quantity) throw new Error("Stock insuffisant");
+    /* =======================
+       SALES
+    ======================== */
+    const totalSales = sales.length;
 
-      // Insert sale
-      const result = db!.runSync(
-        `INSERT INTO sales 
-    (productUniqueId, productName, category, type, quantity, unitPrice, totalPrice, saleDate)
-   VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-        [
-          sale.productUniqueId,
-          sale.productName,
-          sale.category,
-          sale.type,
-          sale.quantity,
-          sale.unitPrice,
-          sale.totalPrice,
-          sale.saleDate,
-        ],
-      );
+    const totalRevenue = sales.reduce(
+      (sum, s) => sum + s.unitPrice * s.quantity,
+      0,
+    );
 
-      // Update stock
-      db!.runSync(
-        sale.type === "product"
-          ? "UPDATE products SET quantity = quantity - ? WHERE id = ?"
-          : "UPDATE accessories SET quantity = quantity - ? WHERE id = ?",
-        [sale.quantity, item.id],
-      );
+    const today = new Date().toDateString();
 
-      return { ...sale, id: result.lastInsertRowId };
-    },
+    const todaySales = sales.filter(
+      (s) => new Date(s.createdAt).toDateString() === today,
+    );
 
-    onSuccess: (newSale) => {
-      // Met à jour React Query pour Web et Mobile
-      queryClient.setQueryData(["sales"], (old: Sale[] | undefined) => {
-        return old ? [...old, newSale] : [newSale];
-      });
-      queryClient.invalidateQueries({ queryKey: ["products"] });
-      queryClient.invalidateQueries({ queryKey: ["accessories"] });
-    },
-  });
+    const todayRevenue = todaySales.reduce(
+      (sum, s) => sum + s.unitPrice * s.quantity,
+      0,
+    );
+
+    /* =======================
+       GLOBAL
+    ======================== */
+    const totalGain = totalProductPrice + totalAccessoryPrice;
+
+    return {
+      // Products
+      totalProducts,
+      totalProductStock,
+      totalProductPrice,
+      lowStockProducts,
+      outOfStockProducts,
+      topBrand,
+
+      // Accessories
+      totalAccessory,
+      totalAccessoryStock,
+      totalAccessoryPrice,
+      lowStockAccessories,
+      outOfStockAccessories,
+
+      // Sales
+      totalSales,
+      totalRevenue,
+      todaySales: todaySales.length,
+      todayRevenue,
+
+      // Sellers
+      totalSellers: sellers.length,
+
+      // Global
+      totalGain,
+    };
+  }, [products, accessories, sales, sellers]);
 
   return {
-    products: productsQuery.data || [],
-    accessories: accessoriesQuery.data || [],
-    sales: salesQuery.data || [],
-    // loading
-    isLoadingProducts: productsQuery.isLoading,
-    isLoadingSales: salesQuery.isLoading,
-    isLoadingAccessories: accessoriesQuery.isLoading,
-    // mutation
-    addProduct: addProductMutation.mutateAsync,
-    updateProduct: updateProductMutation.mutateAsync,
-    deleteProduct: deleteProductMutation.mutateAsync,
-    addSale: addSaleMutation.mutateAsync,
-    addAccessory: addAccessoryMutation.mutateAsync,
-    updateAccessory: updateAccessoryMutation.mutateAsync,
-    deleteAccessory: deleteAccessoryMutation.mutateAsync,
-    // mutation loading
-    isAddingProduct: addProductMutation.isPending,
-    isUpdatingProduct: updateProductMutation.isPending,
-    isDeletingProduct: deleteProductMutation.isPending,
-    isAddingSale: addSaleMutation.isPending,
-    isAddingAccessory: addAccessoryMutation.isPending,
-    isUpdatingAccessory: updateAccessoryMutation.isPending,
-    isDeletingAccessory: deleteAccessoryMutation.isPending,
+    stats,
+    products,
+    accessories,
+    sales,
+    sellers,
   };
 });
