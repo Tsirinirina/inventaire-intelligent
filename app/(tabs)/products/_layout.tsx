@@ -20,6 +20,14 @@ export default function ProductsLayout() {
           title: "Modifier le produit",
         }}
       />
+      <Stack.Screen
+        name="scanner"
+        options={{
+          presentation: "modal",
+          headerShown: true,
+          title: "Scanner le imei",
+        }}
+      />
     </Stack>
   );
 }

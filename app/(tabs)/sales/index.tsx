@@ -141,12 +141,8 @@ export default function SalesScreen() {
           saleDate: new Date().toISOString(),
         };
 
-        console.log("add sales  = ", sale);
-
         await addSale(sale);
       }
-
-      console.log("SALES  = ", sales);
 
       Alert.alert("Succès", "Vente enregistrée avec succès", [
         {

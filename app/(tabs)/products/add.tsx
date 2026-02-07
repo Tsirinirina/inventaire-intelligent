@@ -166,6 +166,7 @@ export default function AddProductScreen() {
               >
                 <View style={styles.captureButtonInner} />
               </Pressable>
+
               <View style={styles.cameraButton} />
             </View>
           </CameraView>
