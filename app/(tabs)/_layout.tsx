@@ -1,3 +1,4 @@
+import { useTheme } from "@/theme/ThemeProvider";
 import { Tabs } from "expo-router";
 import {
   BarChart3,
@@ -6,18 +7,38 @@ import {
   TabletSmartphone,
 } from "lucide-react-native";
 import React from "react";
+import { Platform } from "react-native";
 
 export default function TabLayout() {
+  const { colors } = useTheme();
+
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: "#007AFF",
-        tabBarInactiveTintColor: "#999",
         headerShown: false,
+        tabBarActiveTintColor: colors.tabActive,
+        tabBarInactiveTintColor: colors.tabInactive,
         tabBarStyle: {
-          backgroundColor: "#FFF",
-          borderTopColor: "#E5E5EA",
+          backgroundColor: colors.tabBar,
+          borderTopColor: colors.tabBarBorder,
           borderTopWidth: 1,
+          ...Platform.select({
+            ios: {
+              shadowColor: colors.shadow,
+              shadowOffset: { width: 0, height: -4 },
+              shadowOpacity: 0.1,
+              shadowRadius: 12,
+            },
+            android: {
+              elevation: 8,
+            },
+            web: {},
+          }),
+        },
+        tabBarLabelStyle: {
+          fontSize: 11,
+          fontWeight: "600" as const,
+          marginTop: -2,
         },
       }}
     >

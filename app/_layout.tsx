@@ -1,3 +1,4 @@
+import { ToastContainer, ToastProvider } from "@/components/ui/Toast";
 import { AccessoryProvider } from "@/core/contexts/AccessoryContext";
 import { AuthProvider } from "@/core/contexts/AuthContext";
 import { InventoryProvider } from "@/core/contexts/InventoryContext";
@@ -5,9 +6,11 @@ import { ProductProvider } from "@/core/contexts/ProductContext";
 import { SaleProvider } from "@/core/contexts/SaleContext";
 import { SellerProvider } from "@/core/contexts/SellerContext";
 import { initDatabase } from "@/core/database";
+import { ThemeProvider } from "@/theme/ThemeProvider";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
+import { StatusBar } from "expo-status-bar";
 import React, { useEffect } from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 
@@ -29,7 +32,13 @@ export default function RootLayout() {
               <SaleProvider>
                 <InventoryProvider>
                   <GestureHandlerRootView style={{ flex: 1 }}>
-                    <Stack screenOptions={{ headerShown: false }} />
+                    <ThemeProvider>
+                      <ToastProvider>
+                        <StatusBar style="light" />
+                        <Stack screenOptions={{ headerShown: false }} />
+                        <ToastContainer />
+                      </ToastProvider>
+                    </ThemeProvider>
                   </GestureHandlerRootView>
                 </InventoryProvider>
               </SaleProvider>

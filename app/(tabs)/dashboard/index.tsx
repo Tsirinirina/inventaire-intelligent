@@ -1,4 +1,4 @@
-import CustomButton from "@/components/CustomButton";
+import CustomButton from "@/components/ui/CustomButton";
 import { useProduct } from "@/core/contexts/ProductContext";
 import { PRODUCT_MOCK } from "@/core/mock/productMock";
 import { formatAriary } from "@/core/utils/currency.utils";
