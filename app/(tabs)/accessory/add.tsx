@@ -1,13 +1,15 @@
 import { ACCESSORY_CATEGORIES } from "@/core/constants/categories";
-import { useInventory } from "@/core/contexts/InventoryContext";
+import { useAccessory } from "@/core/contexts/AccessoryContext";
 import { NewAccessory } from "@/core/entity/accessory.entity";
+import { ThemeColors } from "@/theme/colors";
+import { useTheme } from "@/theme/ThemeProvider";
 import { CameraView, useCameraPermissions } from "expo-camera";
 import { Directory, File, Paths } from "expo-file-system";
 import { Image } from "expo-image";
 import * as ImagePicker from "expo-image-picker";
 import { useRouter } from "expo-router";
 import { Camera, Check, Image as ImageIcon, X } from "lucide-react-native";
-import { useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -23,7 +25,11 @@ import {
 
 export default function AddAccessoryScreen() {
   const router = useRouter();
-  const { addAccessory, isAddingAccessory } = useInventory();
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+
+  const { addAccessory, accessoryAdding, accessoryAddingError } =
+    useAccessory();
   const [name, setName] = useState("");
   const [price, setPrice] = useState("");
   const [category, setCategory] = useState("");
@@ -126,7 +132,7 @@ export default function AddAccessoryScreen() {
     }
 
     try {
-      const product: NewAccessory = {
+      const newAccessory: NewAccessory = {
         name: name.trim(),
         basePrice: Number(price),
         category: category.trim() as any,
@@ -134,9 +140,10 @@ export default function AddAccessoryScreen() {
         quantity: Number(quantity),
         createdAt: new Date().toISOString(),
         imageUri,
+        stockUpdatedAt: new Date().toISOString(),
       };
 
-      await addAccessory(product);
+      await addAccessory(newAccessory);
       router.back();
     } catch (error) {
       console.error("Error adding product:", error);
@@ -157,7 +164,7 @@ export default function AddAccessoryScreen() {
                 style={styles.cameraButton}
                 onPress={() => setShowCamera(false)}
               >
-                <X size={24} color="#FFF" />
+                <X size={24} color={colors.textInverse} />
               </Pressable>
               <Pressable
                 style={styles.captureButton}
@@ -194,22 +201,22 @@ export default function AddAccessoryScreen() {
                 style={styles.removeImageButton}
                 onPress={() => setImageUri(undefined)}
               >
-                <X size={16} color="#FFF" />
+                <X size={16} color={colors.textInverse} />
               </Pressable>
             </View>
           ) : (
             <View style={styles.imagePlaceholder}>
-              <ImageIcon size={40} color="#999" />
+              <ImageIcon size={40} color={colors.textMuted} />
               <Text style={styles.imagePlaceholderText}>Aucune image</Text>
             </View>
           )}
           <View style={styles.imageButtons}>
             <Pressable style={styles.imageButton} onPress={handleTakePhoto}>
-              <Camera size={20} color="#007AFF" />
+              <Camera size={20} color={colors.primary} />
               <Text style={styles.imageButtonText}>Caméra</Text>
             </Pressable>
             <Pressable style={styles.imageButton} onPress={handlePickImage}>
-              <ImageIcon size={20} color="#007AFF" />
+              <ImageIcon size={20} color={colors.primary} />
               <Text style={styles.imageButtonText}>Galerie</Text>
             </Pressable>
           </View>
@@ -223,7 +230,7 @@ export default function AddAccessoryScreen() {
               value={name}
               onChangeText={setName}
               placeholder="e.x., Ecouteur bleutooth JBL"
-              placeholderTextColor="#999"
+              placeholderTextColor={colors.inputPlaceholder}
             />
           </View>
 
@@ -265,7 +272,7 @@ export default function AddAccessoryScreen() {
                 value={price}
                 onChangeText={setPrice}
                 placeholder="000"
-                placeholderTextColor="#999"
+                placeholderTextColor={colors.inputPlaceholder}
                 keyboardType="decimal-pad"
               />
             </View>
@@ -277,7 +284,7 @@ export default function AddAccessoryScreen() {
                 value={quantity}
                 onChangeText={setQuantity}
                 placeholder="0"
-                placeholderTextColor="#999"
+                placeholderTextColor={colors.inputPlaceholder}
                 keyboardType="number-pad"
               />
             </View>
@@ -290,7 +297,7 @@ export default function AddAccessoryScreen() {
               value={description}
               onChangeText={setDescription}
               placeholder="Couleur, motifs, états"
-              placeholderTextColor="#999"
+              placeholderTextColor={colors.inputPlaceholder}
               multiline
               numberOfLines={6}
               textAlignVertical="top"
@@ -304,16 +311,16 @@ export default function AddAccessoryScreen() {
           style={[
             styles.button,
             styles.saveButton,
-            isAddingAccessory && styles.buttonDisabled,
+            accessoryAdding && styles.buttonDisabled,
           ]}
           onPress={handleSave}
-          disabled={isAddingAccessory}
+          disabled={accessoryAdding}
         >
-          {isAddingAccessory ? (
-            <ActivityIndicator color="#FFF" />
+          {accessoryAdding ? (
+            <ActivityIndicator color={colors.textInverse} />
           ) : (
             <>
-              <Check size={20} color="#FFF" />
+              <Check size={20} color={colors.textInverse} />
               <Text style={styles.saveButtonText}>
                 Enregistrer l&lsquo;accessoire
               </Text>
@@ -325,194 +332,195 @@ export default function AddAccessoryScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#F5F5F7",
-  },
-  scrollView: {
-    flex: 1,
-  },
-  scrollContent: {
-    paddingBottom: 100,
-  },
-  cameraContainer: {
-    flex: 1,
-    backgroundColor: "#000",
-  },
-  camera: {
-    flex: 1,
-  },
-  cameraControls: {
-    position: "absolute" as const,
-    bottom: 40,
-    left: 0,
-    right: 0,
-    flexDirection: "row" as const,
-    justifyContent: "space-between" as const,
-    alignItems: "center" as const,
-    paddingHorizontal: 40,
-  },
-  cameraButton: {
-    width: 60,
-    height: 60,
-    justifyContent: "center" as const,
-    alignItems: "center" as const,
-  },
-  captureButton: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: "#FFF",
-    justifyContent: "center" as const,
-    alignItems: "center" as const,
-    borderWidth: 4,
-    borderColor: "rgba(255, 255, 255, 0.3)",
-  },
-  captureButtonInner: {
-    width: 68,
-    height: 68,
-    borderRadius: 34,
-    backgroundColor: "#FFF",
-  },
-  imageSection: {
-    backgroundColor: "#FFF",
-    padding: 20,
-    alignItems: "center" as const,
-  },
-  productImage: {
-    width: 200,
-    height: 200,
-    borderRadius: 12,
-  },
-  removeImageButton: {
-    position: "absolute" as const,
-    top: 8,
-    right: 8,
-    backgroundColor: "#FF3B30",
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    justifyContent: "center" as const,
-    alignItems: "center" as const,
-  },
-  imagePlaceholder: {
-    width: 200,
-    height: 200,
-    backgroundColor: "#F5F5F7",
-    borderRadius: 12,
-    justifyContent: "center" as const,
-    alignItems: "center" as const,
-    gap: 8,
-  },
-  imagePlaceholderText: {
-    fontSize: 14,
-    color: "#999",
-  },
-  imageButtons: {
-    flexDirection: "row" as const,
-    gap: 12,
-    marginTop: 16,
-  },
-  imageButton: {
-    flexDirection: "row" as const,
-    alignItems: "center" as const,
-    gap: 8,
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    backgroundColor: "#F5F5F7",
-    borderRadius: 8,
-  },
-  imageButtonText: {
-    fontSize: 16,
-    fontWeight: "600" as const,
-    color: "#007AFF",
-  },
-  form: {
-    padding: 20,
-    gap: 20,
-  },
-  inputGroup: {
-    gap: 8,
-  },
-  label: {
-    fontSize: 15,
-    fontWeight: "600" as const,
-    color: "#000",
-  },
-  input: {
-    backgroundColor: "#FFF",
-    borderRadius: 10,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    fontSize: 16,
-    color: "#000",
-    borderWidth: 1,
-    borderColor: "#E5E5EA",
-  },
-  inputText: {
-    fontSize: 16,
-    color: "#000",
-  },
-  inputPlaceholder: {
-    fontSize: 16,
-    color: "#999",
-  },
-  textArea: {
-    height: 100,
-    paddingTop: 14,
-  },
-  row: {
-    flexDirection: "row" as const,
-    gap: 12,
-  },
-  flex1: {
-    flex: 1,
-  },
-  brandPicker: {
-    maxHeight: 200,
-    backgroundColor: "#FFF",
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: "#E5E5EA",
-  },
-  brandOption: {
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    borderBottomWidth: 1,
-    borderBottomColor: "#F5F5F7",
-  },
-  brandOptionText: {
-    fontSize: 16,
-    color: "#000",
-  },
-  footer: {
-    position: "absolute" as const,
-    bottom: 0,
-    left: 0,
-    right: 0,
-    padding: 20,
-    backgroundColor: "#FFF",
-    borderTopWidth: 1,
-    borderTopColor: "#E5E5EA",
-  },
-  button: {
-    flexDirection: "row" as const,
-    alignItems: "center" as const,
-    justifyContent: "center" as const,
-    paddingVertical: 16,
-    borderRadius: 12,
-    gap: 8,
-  },
-  saveButton: {
-    backgroundColor: "#007AFF",
-  },
-  saveButtonText: {
-    fontSize: 17,
-    fontWeight: "600" as const,
-    color: "#FFF",
-  },
-  buttonDisabled: {
-    opacity: 0.6,
-  },
-});
+const createStyles = (colors: ThemeColors) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: colors.background,
+    },
+    scrollView: {
+      flex: 1,
+    },
+    scrollContent: {
+      paddingBottom: 100,
+    },
+    cameraContainer: {
+      flex: 1,
+      backgroundColor: "#000",
+    },
+    camera: {
+      flex: 1,
+    },
+    cameraControls: {
+      position: "absolute" as const,
+      bottom: 40,
+      left: 0,
+      right: 0,
+      flexDirection: "row" as const,
+      justifyContent: "space-between" as const,
+      alignItems: "center" as const,
+      paddingHorizontal: 40,
+    },
+    cameraButton: {
+      width: 60,
+      height: 60,
+      justifyContent: "center" as const,
+      alignItems: "center" as const,
+    },
+    captureButton: {
+      width: 80,
+      height: 80,
+      borderRadius: 40,
+      backgroundColor: colors.surface,
+      justifyContent: "center" as const,
+      alignItems: "center" as const,
+      borderWidth: 4,
+      borderColor: "rgba(255, 255, 255, 0.3)",
+    },
+    captureButtonInner: {
+      width: 68,
+      height: 68,
+      borderRadius: 34,
+      backgroundColor: colors.surface,
+    },
+    imageSection: {
+      backgroundColor: colors.surface,
+      padding: 20,
+      alignItems: "center" as const,
+    },
+    productImage: {
+      width: 200,
+      height: 200,
+      borderRadius: 12,
+    },
+    removeImageButton: {
+      position: "absolute" as const,
+      top: 8,
+      right: 8,
+      backgroundColor: colors.danger,
+      width: 28,
+      height: 28,
+      borderRadius: 14,
+      justifyContent: "center" as const,
+      alignItems: "center" as const,
+    },
+    imagePlaceholder: {
+      width: 200,
+      height: 200,
+      backgroundColor: colors.inputBackground,
+      borderRadius: 12,
+      justifyContent: "center" as const,
+      alignItems: "center" as const,
+      gap: 8,
+    },
+    imagePlaceholderText: {
+      fontSize: 14,
+      color: colors.textMuted,
+    },
+    imageButtons: {
+      flexDirection: "row" as const,
+      gap: 12,
+      marginTop: 16,
+    },
+    imageButton: {
+      flexDirection: "row" as const,
+      alignItems: "center" as const,
+      gap: 8,
+      paddingHorizontal: 20,
+      paddingVertical: 10,
+      backgroundColor: colors.inputBackground,
+      borderRadius: 8,
+    },
+    imageButtonText: {
+      fontSize: 16,
+      fontWeight: "600" as const,
+      color: colors.primary,
+    },
+    form: {
+      padding: 20,
+      gap: 20,
+    },
+    inputGroup: {
+      gap: 8,
+    },
+    label: {
+      fontSize: 15,
+      fontWeight: "600" as const,
+      color: colors.text,
+    },
+    input: {
+      backgroundColor: colors.surface,
+      borderRadius: 10,
+      paddingHorizontal: 16,
+      paddingVertical: 14,
+      fontSize: 16,
+      color: colors.inputText,
+      borderWidth: 1,
+      borderColor: colors.inputBorder,
+    },
+    inputText: {
+      fontSize: 16,
+      color: colors.inputText,
+    },
+    inputPlaceholder: {
+      fontSize: 16,
+      color: colors.inputPlaceholder,
+    },
+    textArea: {
+      height: 100,
+      paddingTop: 14,
+    },
+    row: {
+      flexDirection: "row" as const,
+      gap: 12,
+    },
+    flex1: {
+      flex: 1,
+    },
+    brandPicker: {
+      maxHeight: 200,
+      backgroundColor: colors.surface,
+      borderRadius: 10,
+      borderWidth: 1,
+      borderColor: colors.inputBorder,
+    },
+    brandOption: {
+      paddingHorizontal: 16,
+      paddingVertical: 14,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.border,
+    },
+    brandOptionText: {
+      fontSize: 16,
+      color: colors.text,
+    },
+    footer: {
+      position: "absolute" as const,
+      bottom: 0,
+      left: 0,
+      right: 0,
+      padding: 20,
+      backgroundColor: colors.surface,
+      borderTopWidth: 1,
+      borderTopColor: colors.border,
+    },
+    button: {
+      flexDirection: "row" as const,
+      alignItems: "center" as const,
+      justifyContent: "center" as const,
+      paddingVertical: 16,
+      borderRadius: 12,
+      gap: 8,
+    },
+    saveButton: {
+      backgroundColor: colors.primary,
+    },
+    saveButtonText: {
+      fontSize: 17,
+      fontWeight: "600" as const,
+      color: colors.textInverse,
+    },
+    buttonDisabled: {
+      opacity: 0.6,
+    },
+  });
