@@ -1,11 +1,11 @@
-import { PRODUCT_BRANDS } from "@/constants/brands";
-import { PRODUCT_CATEGORIES } from "@/constants/categories";
-import { useInventory } from "@/contexts/InventoryContext";
+import { PRODUCT_BRANDS } from "@/core/constants/brands";
+import { PRODUCT_CATEGORIES } from "@/core/constants/categories";
+import { useInventory } from "@/core/contexts/InventoryContext";
 import {
   ProductForm,
   productFormDefaultValues,
   productSchema,
-} from "@/types/product.form";
+} from "@/core/types/product.form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { CameraView, useCameraPermissions } from "expo-camera";
 import { Directory, File, Paths } from "expo-file-system";
@@ -34,7 +34,7 @@ import {
   View,
 } from "react-native";
 import DropdownSelect from "react-native-input-select";
-import type { Product } from "../../../../types/inventory";
+import type { Product } from "../../../../core/types/inventory";
 
 export default function EditProductScreen() {
   const router = useRouter();
@@ -85,7 +85,7 @@ export default function EditProductScreen() {
       if (!result.granted) {
         Alert.alert(
           "Autorisation requise",
-          "L'autorisation de prendre des photos est requise."
+          "L'autorisation de prendre des photos est requise.",
         );
         return;
       }
@@ -189,7 +189,7 @@ export default function EditProductScreen() {
             }
           },
         },
-      ]
+      ],
     );
   };
 

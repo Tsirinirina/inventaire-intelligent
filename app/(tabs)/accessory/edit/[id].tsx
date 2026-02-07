@@ -1,5 +1,5 @@
-import { ACCESSORY_CATEGORIES } from "@/constants/categories";
-import { useInventory } from "@/contexts/InventoryContext";
+import { ACCESSORY_CATEGORIES } from "@/core/constants/categories";
+import { useInventory } from "@/core/contexts/InventoryContext";
 import { Accessory } from "@/types/inventory";
 import { CameraView, useCameraPermissions } from "expo-camera";
 import { Directory, File, Paths } from "expo-file-system";
@@ -68,7 +68,7 @@ export default function EditAccessoryScreen() {
       if (!result.granted) {
         Alert.alert(
           "Autorisation requise",
-          "L'autorisation de prendre des photos est requise."
+          "L'autorisation de prendre des photos est requise.",
         );
         return;
       }
@@ -149,7 +149,7 @@ export default function EditAccessoryScreen() {
     if (!quantity.trim() || isNaN(Number(quantity)) || Number(quantity) < 0) {
       Alert.alert(
         "Erreur de validation",
-        "Veuillez saisir une quantité valide"
+        "Veuillez saisir une quantité valide",
       );
       return;
     }
@@ -191,13 +191,13 @@ export default function EditAccessoryScreen() {
             } catch (error) {
               console.error(
                 "Erreur lors de la suppression de l'accessoire:",
-                error
+                error,
               );
               Alert.alert("Erreur", "Échec de la suppression de l'accessoire");
             }
           },
         },
-      ]
+      ],
     );
   };
 

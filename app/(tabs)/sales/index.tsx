@@ -1,5 +1,5 @@
-import { useInventory } from "@/contexts/InventoryContext";
-import { formatAriary } from "@/utils/currency.utils";
+import { useInventory } from "@/core/contexts/InventoryContext";
+import { formatAriary } from "@/core/utils/currency.utils";
 import { Check, DollarSign, Minus, Plus, Search, X } from "lucide-react-native";
 import { useMemo, useState } from "react";
 import {
@@ -13,7 +13,11 @@ import {
   TextInput,
   View,
 } from "react-native";
-import type { Accessory, NewSale, Product } from "../../../types/inventory";
+import type {
+  Accessory,
+  NewSale,
+  Product,
+} from "../../../core/types/inventory";
 
 export default function SalesScreen() {
   const [searchQuery, setSearchQuery] = useState("");
@@ -39,7 +43,7 @@ export default function SalesScreen() {
       .filter(
         (p) =>
           p.name.toLowerCase().includes(query) ||
-          p.brand.toLowerCase().includes(query)
+          p.brand.toLowerCase().includes(query),
       )
       .map((p) => ({
         ...p,
@@ -64,7 +68,7 @@ export default function SalesScreen() {
   const totalAmount = useMemo(() => {
     return Array.from(cart.values()).reduce(
       (sum, cartItem) => sum + cartItem.item.price * cartItem.quantity,
-      0
+      0,
     );
   }, [cart]);
 
@@ -78,7 +82,7 @@ export default function SalesScreen() {
     if (currentQuantity >= item.quantity) {
       Alert.alert(
         "Limite de stock",
-        `Seulement ${item.quantity} unités disponibles`
+        `Seulement ${item.quantity} unités disponibles`,
       );
       return;
     }
@@ -119,7 +123,7 @@ export default function SalesScreen() {
     if (cartItems.length === 0) {
       Alert.alert(
         "Panier vide",
-        "Veuillez ajouter les articles à votre panier avant de finaliser votre commande."
+        "Veuillez ajouter les articles à votre panier avant de finaliser votre commande.",
       );
       return;
     }

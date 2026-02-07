@@ -1,5 +1,6 @@
-import { ACCESSORY_CATEGORIES } from "@/constants/categories";
-import { useInventory } from "@/contexts/InventoryContext";
+import { ACCESSORY_CATEGORIES } from "@/core/constants/categories";
+import { useInventory } from "@/core/contexts/InventoryContext";
+import { NewAccessory } from "@/core/entity/accessory.entity";
 import { CameraView, useCameraPermissions } from "expo-camera";
 import { Directory, File, Paths } from "expo-file-system";
 import { Image } from "expo-image";
@@ -19,7 +20,6 @@ import {
   TextInput,
   View,
 } from "react-native";
-import type { NewAccessory } from "../../../types/inventory";
 
 export default function AddAccessoryScreen() {
   const router = useRouter();
@@ -41,7 +41,7 @@ export default function AddAccessoryScreen() {
       if (!result.granted) {
         Alert.alert(
           "Autorisation requise",
-          "L'autorisation de prendre des photos est requise."
+          "L'autorisation de prendre des photos est requise.",
         );
         return;
       }
@@ -106,7 +106,7 @@ export default function AddAccessoryScreen() {
     if (!name.trim()) {
       Alert.alert(
         "Erreur de validation",
-        "Veuillez saisir le nom de l'accessoire"
+        "Veuillez saisir le nom de l'accessoire",
       );
       return;
     }
@@ -128,11 +128,11 @@ export default function AddAccessoryScreen() {
     try {
       const product: NewAccessory = {
         name: name.trim(),
-        price: Number(price),
+        basePrice: Number(price),
         category: category.trim() as any,
         description: description.trim(),
         quantity: Number(quantity),
-        dateAdded: new Date().toISOString(),
+        createdAt: new Date().toISOString(),
         imageUri,
       };
 

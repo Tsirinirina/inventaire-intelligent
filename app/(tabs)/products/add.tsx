@@ -1,6 +1,6 @@
-import { PRODUCT_BRANDS } from "@/constants/brands";
-import { PRODUCT_CATEGORIES } from "@/constants/categories";
-import { useInventory } from "@/contexts/InventoryContext";
+import { PRODUCT_BRANDS } from "@/core/constants/brands";
+import { PRODUCT_CATEGORIES } from "@/core/constants/categories";
+import { useInventory } from "@/core/contexts/InventoryContext";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { CameraView, useCameraPermissions } from "expo-camera";
 import { Directory, File, Paths } from "expo-file-system";
@@ -28,8 +28,8 @@ import {
   ProductForm,
   productFormDefaultValues,
   productSchema,
-} from "@/types/product.form";
-import type { NewProduct } from "../../../types/inventory";
+} from "@/core/types/product.form";
+import type { NewProduct } from "../../../core/types/inventory";
 
 export default function AddProductScreen() {
   const router = useRouter();
@@ -59,7 +59,7 @@ export default function AddProductScreen() {
       if (!result.granted) {
         Alert.alert(
           "Autorisation requise",
-          "L'autorisation de prendre des photos est requise."
+          "L'autorisation de prendre des photos est requise.",
         );
         return;
       }

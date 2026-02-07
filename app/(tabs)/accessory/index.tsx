@@ -1,5 +1,5 @@
-import { useInventory } from "@/contexts/InventoryContext";
-import { formatAriary } from "@/utils/currency.utils";
+import { useInventory } from "@/core/contexts/InventoryContext";
+import { formatAriary } from "@/core/utils/currency.utils";
 import { Image } from "expo-image";
 import { useRouter } from "expo-router";
 import { AlertCircle, Plus, Search, X } from "lucide-react-native";
@@ -16,8 +16,8 @@ import {
   View,
 } from "react-native";
 
-import { ACCESSORY_CATEGORIES } from "@/constants/categories";
-import type { Accessory } from "../../../types/inventory";
+import { ACCESSORY_CATEGORIES } from "@/core/constants/categories";
+import { Accessory } from "@/core/entity/accessory.entity";
 
 export default function AccessoriesScreen() {
   const router = useRouter();
@@ -27,6 +27,7 @@ export default function AccessoriesScreen() {
     deleteAccessory,
     isDeletingAccessory,
   } = useInventory();
+
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
 
@@ -63,7 +64,7 @@ export default function AccessoriesScreen() {
             }
           },
         },
-      ]
+      ],
     );
   };
 
@@ -100,7 +101,9 @@ export default function AccessoriesScreen() {
           {item.category}
         </Text>
         <View style={styles.productDetails}>
-          <Text style={styles.productPrice}>{formatAriary(item.price)}</Text>
+          <Text style={styles.productPrice}>
+            {formatAriary(item.basePrice)}
+          </Text>
           <Text style={styles.productQuantity}>Stock: {item.quantity}</Text>
         </View>
       </View>

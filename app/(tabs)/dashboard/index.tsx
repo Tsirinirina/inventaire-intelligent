@@ -1,18 +1,9 @@
-import { useInventory } from "@/contexts/InventoryContext";
-import { formatAriary } from "@/utils/currency.utils";
-import { useRouter } from "expo-router";
-import {
-  DollarSign,
-  LucidePiggyBank,
-  Package,
-  ShoppingCart,
-  TabletSmartphone,
-  TrendingUp,
-} from "lucide-react-native";
-import { useMemo } from "react";
+import CustomButton from "@/components/CustomButton";
+import { useProduct } from "@/core/contexts/ProductContext";
+import { PRODUCT_MOCK } from "@/core/mock/productMock";
+import { formatAriary } from "@/core/utils/currency.utils";
 import {
   ActivityIndicator,
-  Pressable,
   ScrollView,
   StyleSheet,
   Text,
@@ -20,86 +11,16 @@ import {
 } from "react-native";
 
 export default function DashboardScreen() {
-  const router = useRouter();
-  const {
-    products,
-    sales,
-    accessories,
-    isLoadingProducts,
-    isLoadingSales,
-    isLoadingAccessories,
-  } = useInventory();
+  const { products, productsLoading, addProduct, productsRefetch } =
+    useProduct();
 
-  const stats = useMemo(() => {
-    // Product memo
-    const totalProducts = products.length;
-    const totalProductStock = products.reduce((sum, p) => sum + p.quantity, 0);
-    const totalProductPrice = products.reduce(
-      (sum, p) => sum + p.price * p.quantity,
-      0
-    );
-    const lowStockProducts = products.filter((p) => p.quantity <= 5);
-    const outOfStockProducts = products.filter((p) => p.quantity === 0);
+  const onCreate = () => {
+    for (const dto of PRODUCT_MOCK) {
+      addProduct(dto);
+    }
+  };
 
-    // Sales memo
-    const totalSales = sales.length;
-    console.log("total = ", sales);
-
-    const totalRevenue = 0;
-    // const totalRevenue = sales.reduce((sum, s) => sum + s.totalPrice, 0);
-    // const todaySales = sales.filter(
-    //   (s) => new Date(s.saleDate).toDateString() === new Date().toDateString()
-    // );
-    const todaySales = [] as any;
-    // const todayRevenue = todaySales.reduce((sum, s) => sum + s.totalPrice, 0);
-    const todayRevenue = 0;
-
-    const brandStats = products.reduce((acc, p) => {
-      acc[p.brand] = (acc[p.brand] || 0) + 1;
-      return acc;
-    }, {} as Record<string, number>);
-
-    const topBrand = Object.entries(brandStats).sort((a, b) => b[1] - a[1])[0];
-
-    // Accessory memo
-    const totalAccessory = accessories.length;
-    const totalAccessoryStock = accessories.reduce(
-      (sum, acc) => sum + acc.quantity,
-      0
-    );
-    const totalAccessoryPrice = accessories.reduce(
-      (sum, acc) => sum + acc.price * acc.quantity,
-      0
-    );
-    const lowStockAccessories = accessories.filter((acc) => acc.quantity <= 5);
-    const ouOfStockAccessories = accessories.filter(
-      (acc) => acc.quantity === 0
-    );
-
-    // Total product & accessory
-    const totalGain = totalProductPrice + totalAccessoryPrice;
-
-    return {
-      totalProducts,
-      totalProductStock,
-      totalProductPrice,
-      lowStockProducts,
-      outOfStockProducts,
-      totalSales,
-      totalRevenue,
-      todaySales: todaySales.length,
-      todayRevenue,
-      topBrand: topBrand ? { name: topBrand[0], count: topBrand[1] } : null,
-      totalAccessory,
-      totalAccessoryStock,
-      totalAccessoryPrice,
-      lowStockAccessories,
-      ouOfStockAccessories,
-      totalGain,
-    };
-  }, [products, sales, accessories]);
-
-  if (isLoadingProducts || isLoadingSales || isLoadingAccessories) {
+  if (productsLoading) {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color="#007AFF" />
@@ -112,140 +33,28 @@ export default function DashboardScreen() {
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Tableau de bord</Text>
         <Text style={styles.headerSubtitle}>Aperçu de votre magasin</Text>
+        <CustomButton title="Créer produit" onPress={onCreate} />
+        <CustomButton title="Reload" onPress={productsRefetch} />
       </View>
+
       <ScrollView contentContainerStyle={styles.content}>
-        <View style={styles.statsGrid}>
-          <View style={[styles.statCard, styles.statCardSecondary]}>
-            <View style={styles.statIcon}>
-              <TabletSmartphone size={24} color="#FFF" />
+        {products.length > 0 &&
+          products.map((product) => (
+            <View key={product.id}>
+              <Text>Nom: {product.name}</Text>
+              <Text>Prix: {formatAriary(product.basePrice)}</Text>
+              <Text>Prix: {product.brand}</Text>
+              <Text>Prix: {product.category}</Text>
+              <Text>Prix: {product.imageUri}</Text>
+              <Text>Prix: {product.quantity}</Text>
+              <Text>Prix: {product.stockUpdatedAt}</Text>
             </View>
-            <View style={styles.statGroup}>
-              <Text style={styles.statValue}>{stats.totalProducts}</Text>
-              <Text style={styles.statLabel}>Produit</Text>
-            </View>
-            <View style={styles.statGroup}>
-              <Text style={styles.statValue}>{stats.totalProductStock}</Text>
-              <Text style={styles.statLabel}>En stock</Text>
-            </View>
-            <Text style={styles.statValue}>
-              {formatAriary(stats.totalProductPrice)}
-            </Text>
+          ))}
+        {products.length === 0 && (
+          <View>
+            <Text>Aucun données</Text>
           </View>
-
-          <View style={[styles.statCard, styles.statCardSecondary]}>
-            <View style={styles.statIcon}>
-              <Package size={24} color="#FFF" />
-            </View>
-            <View style={styles.statGroup}>
-              <Text style={styles.statValue}>{stats.totalAccessory}</Text>
-              <Text style={styles.statLabel}>Produit</Text>
-            </View>
-            <View style={styles.statGroup}>
-              <Text style={styles.statValue}>{stats.totalAccessoryStock}</Text>
-              <Text style={styles.statLabel}>En stock</Text>
-            </View>
-            <Text style={styles.statValue}>
-              {formatAriary(stats.totalAccessoryPrice)}
-            </Text>
-          </View>
-        </View>
-
-        {/*  */}
-        <View style={styles.statsGrid}>
-          <View style={[styles.statCard, styles.statCardWarning]}>
-            <View style={styles.statIcon}>
-              <ShoppingCart size={24} color="#FFF" />
-            </View>
-            <Text style={styles.statValue}>{stats.totalSales}</Text>
-            <Text style={styles.statLabel}>Ventes totales</Text>
-          </View>
-        </View>
-
-        <View style={styles.statsGrid}>
-          <View style={[styles.statCard, styles.statCardSuccess]}>
-            <View style={styles.statIcon}>
-              <LucidePiggyBank size={24} color="#FFF" />
-            </View>
-            <Text style={styles.statValue}>
-              {formatAriary(stats.totalGain)}
-            </Text>
-            <Text style={styles.statLabel}>Valeur d&apos;inventaire</Text>
-          </View>
-        </View>
-
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>
-            Performance d&lsquo;aujourd&apos;hui
-          </Text>
-          <View style={styles.performanceCard}>
-            <View style={styles.performanceRow}>
-              <View style={styles.performanceItem}>
-                <TrendingUp size={20} color="#34C759" />
-                <Text style={styles.performanceValue}>{stats.todaySales}</Text>
-                <Text style={styles.performanceLabel}>
-                  Ventes aujourd&apos;hui
-                </Text>
-              </View>
-              <View style={styles.performanceDivider} />
-              <View style={styles.performanceItem}>
-                <DollarSign size={20} color="#007AFF" />
-                <Text style={styles.performanceValue}>
-                  {formatAriary(stats.todayRevenue)}
-                </Text>
-                <Text style={styles.performanceLabel}>
-                  Revenus aujourd&apos;hui
-                </Text>
-              </View>
-            </View>
-          </View>
-        </View>
-
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Résumé des ventes</Text>
-          <View style={styles.summaryCard}>
-            <View style={styles.summaryRow}>
-              <Text style={styles.summaryLabel}>Revenu total</Text>
-              <Text style={styles.summaryValue}>
-                {formatAriary(stats.totalRevenue)}
-              </Text>
-            </View>
-            <View style={styles.summaryDivider} />
-            <View style={styles.summaryRow}>
-              <Text style={styles.summaryLabel}>Vente moyenne</Text>
-              <Text style={styles.summaryValue}>
-                {stats.totalSales > 0
-                  ? formatAriary(stats.totalRevenue / stats.totalSales)
-                  : "0 Ar"}
-              </Text>
-            </View>
-            <View style={styles.summaryDivider} />
-            <View style={styles.summaryRow}>
-              <Text style={styles.summaryLabel}>TOP Marque</Text>
-              <Text style={styles.summaryValue}>
-                {stats.topBrand
-                  ? `${stats.topBrand.name} (${stats.topBrand.count})`
-                  : "N/A"}
-              </Text>
-            </View>
-          </View>
-        </View>
-
-        <View style={styles.quickActions}>
-          <Pressable
-            style={styles.quickActionButton}
-            onPress={() => router.push("/(tabs)/products/add")}
-          >
-            <Package size={24} color="#007AFF" />
-            <Text style={styles.quickActionText}>Ajouter produit</Text>
-          </Pressable>
-          <Pressable
-            style={styles.quickActionButton}
-            onPress={() => router.push("/(tabs)/sales")}
-          >
-            <ShoppingCart size={24} color="#007AFF" />
-            <Text style={styles.quickActionText}>Record de vente</Text>
-          </Pressable>
-        </View>
+        )}
       </ScrollView>
     </View>
   );
@@ -461,41 +270,3 @@ const styles = StyleSheet.create({
     color: "#007AFF",
   },
 });
-{
-  /* <View style={styles.alertsSection}>
-        {stats.outOfStockProducts.length > 0 && (
-          <Pressable
-            style={styles.alert}
-            onPress={() => router.push("/(tabs)/products")}
-          >
-            <View style={[styles.alertIcon, { backgroundColor: "#FF3B30" }]}>
-              <AlertCircle size={20} color="#FFF" />
-            </View>
-            <View style={styles.alertContent}>
-              <Text style={styles.alertTitle}>En rupture de stock</Text>
-              <Text style={styles.alertText}>
-                {stats.outOfStockProducts.length} produit
-                {stats.outOfStockProducts.length !== 1 ? "s" : ""} épuisé
-              </Text>
-            </View>
-          </Pressable>
-        )}
-        {stats.lowStockProducts.length > 0 && (
-          <Pressable
-            style={styles.alert}
-            onPress={() => router.push("/(tabs)/products")}
-          >
-            <View style={[styles.alertIcon, { backgroundColor: "#FF9500" }]}>
-              <AlertCircle size={20} color="#FFF" />
-            </View>
-            <View style={styles.alertContent}>
-              <Text style={styles.alertTitle}>Produit en stock faible</Text>
-              <Text style={styles.alertText}>
-                {stats.lowStockProducts.length} produit
-                {stats.lowStockProducts.length !== 1 ? "s" : ""} faible
-              </Text>
-            </View>
-          </Pressable>
-        )}
-      </View> */
-}

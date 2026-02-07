@@ -1,6 +1,6 @@
-import { PRODUCT_CATEGORIES } from "@/constants/categories";
-import { useInventory } from "@/contexts/InventoryContext";
-import { formatAriary } from "@/utils/currency.utils";
+import { PRODUCT_CATEGORIES } from "@/core/constants/categories";
+import { useInventory } from "@/core/contexts/InventoryContext";
+import { formatAriary } from "@/core/utils/currency.utils";
 import { Image } from "expo-image";
 import { useRouter } from "expo-router";
 import { AlertCircle, Plus, Search, X } from "lucide-react-native";
@@ -16,8 +16,8 @@ import {
   TextInput,
   View,
 } from "react-native";
-import { PRODUCT_BRANDS } from "../../../constants/brands";
-import type { Product } from "../../../types/inventory";
+import { PRODUCT_BRANDS } from "../../../core/constants/brands";
+import type { Product } from "../../../core/types/inventory";
 
 const CustomStickyHeader: React.FC<{ title: string }> = ({ title }) => (
   <View>
@@ -66,7 +66,7 @@ export default function ProductsScreen() {
             }
           },
         },
-      ]
+      ],
     );
   };
 
