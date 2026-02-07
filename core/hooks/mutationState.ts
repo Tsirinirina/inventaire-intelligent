@@ -25,13 +25,12 @@ export function useMutationState<
       ? boolean
       : unknown;
 } {
-  const actionName = `${action}${name.charAt(0).toUpperCase()}${name.slice(1)}`;
-  const loadingName = `${name.charAt(0).toLowerCase()}${name.slice(1)}${ACTION_SUFFIX[action]}`;
-  const errorName = `${action}${name.charAt(0).toLowerCase()}${name.slice(1)}Error`;
+  const capitalizedName = `${name.charAt(0).toUpperCase()}${name.slice(1)}`;
+  const lowerName = `${name.charAt(0).toLowerCase()}${name.slice(1)}`;
 
   return {
-    [actionName]: mutation.mutateAsync,
-    [loadingName]: mutation.isPending,
-    [errorName]: mutation.error,
+    [`${action}${capitalizedName}`]: mutation.mutateAsync,
+    [`${lowerName}${ACTION_SUFFIX[action]}`]: mutation.isPending,
+    [`${lowerName}${ACTION_SUFFIX[action]}Error`]: mutation.error,
   } as any;
 }

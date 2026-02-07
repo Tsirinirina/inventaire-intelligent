@@ -17,7 +17,7 @@ const THEME_KEY = "fintech_theme_mode";
 
 export const [ThemeProvider, useTheme] = createContextHook<ThemeContext>(() => {
   const systemScheme = useColorScheme();
-  const [mode, setModeState] = useState<ThemeMode>("dark");
+  const [mode, setModeState] = useState<ThemeMode>("light");
 
   useEffect(() => {
     AsyncStorage.getItem(THEME_KEY).then((stored) => {

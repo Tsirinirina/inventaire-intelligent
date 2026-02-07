@@ -26,7 +26,7 @@ export const [ProductProvider, useProduct] = createContextHook(() => {
    * Ad product Query
    */
   const addProductQuery = useAddProductQuery(queryClient);
-  const addProductState = useMutationState(
+  const { addProduct, productAdding, productAddingError } = useMutationState(
     "add",
     PRODUCT_QUERY_KEY,
     addProductQuery,
@@ -44,7 +44,9 @@ export const [ProductProvider, useProduct] = createContextHook(() => {
 
   return {
     ...getAllProductsState,
-    ...addProductState,
+    addProduct,
+    productAdding,
+    productAddingError,
     ...updateProductState,
   };
 });

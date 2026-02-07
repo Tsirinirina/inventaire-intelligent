@@ -1,6 +1,12 @@
 import { PRODUCT_BRANDS } from "@/core/constants/brands";
 import { PRODUCT_CATEGORIES } from "@/core/constants/categories";
-import { useInventory } from "@/core/contexts/InventoryContext";
+import { useProduct } from "@/core/contexts/ProductContext";
+import { NewProduct } from "@/core/entity/product.entity";
+import {
+  ProductForm,
+  productFormDefaultValues,
+  productSchema,
+} from "@/core/forms/product.form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { CameraView, useCameraPermissions } from "expo-camera";
 import { Directory, File, Paths } from "expo-file-system";
@@ -22,21 +28,16 @@ import {
   TextInput,
   View,
 } from "react-native";
-import { DropdownSelect } from "react-native-input-select"; // 🚀
+import { DropdownSelect } from "react-native-input-select";
 
-import {
-  ProductForm,
-  productFormDefaultValues,
-  productSchema,
-} from "@/core/forms/product.form";
-import type { NewProduct } from "../../../core/types/inventory";
+import { useTheme } from "@/theme/ThemeProvider";
+import { ThemeColors } from "@/theme/colors";
 
 export default function AddProductScreen() {
   const router = useRouter();
-  /**
-   * Store
-   */
-  const { addProduct, isAddingProduct } = useInventory();
+  const { colors } = useTheme();
+
+  const { addProduct, productAdding } = useProduct();
   const [permission, requestPermission] = useCameraPermissions();
   const cameraRef = useRef<CameraView>(null);
 
@@ -127,10 +128,11 @@ export default function AddProductScreen() {
         name: data.name.trim(),
         brand: data.brand.trim(),
         category: data.category as any,
-        price: Number(data.price),
+        basePrice: Number(data.price),
         quantity: Number(data.quantity),
         description: data.description?.trim() as any,
-        dateAdded: new Date().toISOString(),
+        createdAt: new Date().toISOString(),
+        stockUpdatedAt: new Date().toISOString(),
         imageUri,
       };
 
@@ -142,8 +144,7 @@ export default function AddProductScreen() {
     }
   };
 
-  // const [isEnabled, setIsEnabled] = useState(false);
-  // const toggleSwitch = () => setIsEnabled((previousState) => !previousState);
+  const styles = createStyles(colors);
 
   if (showCamera) {
     return (
@@ -158,7 +159,7 @@ export default function AddProductScreen() {
                 style={styles.cameraButton}
                 onPress={() => setShowCamera(false)}
               >
-                <X size={24} color="#FFF" />
+                <X size={24} color={colors.textInverse} />
               </Pressable>
               <Pressable
                 style={styles.captureButton}
@@ -166,7 +167,6 @@ export default function AddProductScreen() {
               >
                 <View style={styles.captureButtonInner} />
               </Pressable>
-
               <View style={styles.cameraButton} />
             </View>
           </CameraView>
@@ -176,9 +176,12 @@ export default function AddProductScreen() {
   }
 
   return (
-    <KeyboardAvoidingView style={styles.container}>
+    <KeyboardAvoidingView
+      style={styles.container}
+      behavior={Platform.OS === "ios" ? "padding" : undefined}
+      keyboardVerticalOffset={100}
+    >
       <ScrollView contentContainerStyle={styles.scrollContent}>
-        {/* IMAGE SECTION */}
         <View style={styles.imageSection}>
           {imageUri ? (
             <View>
@@ -187,38 +190,29 @@ export default function AddProductScreen() {
                 style={styles.removeImageButton}
                 onPress={() => setImageUri(undefined)}
               >
-                <X size={16} color="#FFF" />
+                <X size={16} color={colors.textInverse} />
               </Pressable>
             </View>
           ) : (
             <View style={styles.imagePlaceholder}>
-              <ImageIcon size={40} color="#999" />
+              <ImageIcon size={40} color={colors.textMuted} />
               <Text style={styles.imagePlaceholderText}>Aucune image</Text>
             </View>
           )}
 
           <View style={styles.imageButtons}>
             <Pressable style={styles.imageButton} onPress={handleTakePhoto}>
-              <Camera size={20} color="#007AFF" />
+              <Camera size={20} color={colors.primary} />
               <Text style={styles.imageButtonText}>Caméra</Text>
             </Pressable>
 
             <Pressable style={styles.imageButton} onPress={handlePickImage}>
-              <ImageIcon size={20} color="#007AFF" />
+              <ImageIcon size={20} color={colors.primary} />
               <Text style={styles.imageButtonText}>Galerie</Text>
             </Pressable>
-
-            {/* <Switch
-              trackColor={{ false: "#767577", true: "#81b0ff" }}
-              thumbColor={isEnabled ? "#f5dd4b" : "#f4f3f4"}
-              ios_backgroundColor="#3e3e3e"
-              onValueChange={toggleSwitch}
-              value={isEnabled}
-            /> */}
           </View>
         </View>
 
-        {/* FORM */}
         <View style={styles.form}>
           <Controller
             control={control}
@@ -232,7 +226,7 @@ export default function AddProductScreen() {
                   onBlur={field.onBlur}
                   style={styles.input}
                   placeholder="Ex: Samsung A54"
-                  placeholderTextColor="#999"
+                  placeholderTextColor={colors.inputPlaceholder}
                 />
                 {errors.name && (
                   <Text style={styles.error}>{errors.name.message}</Text>
@@ -241,7 +235,6 @@ export default function AddProductScreen() {
             )}
           />
 
-          {/* BRAND SELECT */}
           <View style={styles.inputGroup}>
             <Controller
               control={control}
@@ -262,13 +255,11 @@ export default function AddProductScreen() {
                 />
               )}
             />
-
             {errors.brand && (
               <Text style={styles.error}>{errors.brand.message}</Text>
             )}
           </View>
 
-          {/* CATEGORY SELECT NEW  */}
           <View style={styles.inputGroup}>
             <Controller
               control={control}
@@ -289,13 +280,11 @@ export default function AddProductScreen() {
                 />
               )}
             />
-
             {errors.category && (
               <Text style={styles.error}>{errors.category.message}</Text>
             )}
           </View>
 
-          {/* PRICE + QUANTITY */}
           <View style={styles.row}>
             <Controller
               control={control}
@@ -310,7 +299,7 @@ export default function AddProductScreen() {
                     style={styles.input}
                     keyboardType="decimal-pad"
                     placeholder="0"
-                    placeholderTextColor="#999"
+                    placeholderTextColor={colors.inputPlaceholder}
                   />
                   {errors.price && (
                     <Text style={styles.error}>{errors.price.message}</Text>
@@ -332,7 +321,7 @@ export default function AddProductScreen() {
                     style={styles.input}
                     keyboardType="number-pad"
                     placeholder="0"
-                    placeholderTextColor="#999"
+                    placeholderTextColor={colors.inputPlaceholder}
                   />
                   {errors.quantity && (
                     <Text style={styles.error}>{errors.quantity.message}</Text>
@@ -342,7 +331,6 @@ export default function AddProductScreen() {
             />
           </View>
 
-          {/* DESCRIPTION */}
           <Controller
             control={control}
             name="description"
@@ -355,7 +343,7 @@ export default function AddProductScreen() {
                   onBlur={field.onBlur}
                   style={[styles.input, styles.textArea]}
                   placeholder="Description du produit"
-                  placeholderTextColor="#999"
+                  placeholderTextColor={colors.inputPlaceholder}
                   multiline
                   numberOfLines={5}
                 />
@@ -365,22 +353,21 @@ export default function AddProductScreen() {
         </View>
       </ScrollView>
 
-      {/* SAVE BUTTON */}
       <View style={styles.footer}>
         <Pressable
           style={[
             styles.button,
             styles.saveButton,
-            isAddingProduct && styles.buttonDisabled,
+            productAdding && styles.buttonDisabled,
           ]}
           onPress={handleSubmit(onSubmit)}
-          disabled={isAddingProduct}
+          disabled={productAdding}
         >
-          {isAddingProduct ? (
-            <ActivityIndicator color="#FFF" />
+          {productAdding ? (
+            <ActivityIndicator color={colors.textInverse} />
           ) : (
             <>
-              <Check size={20} color="#FFF" />
+              <Check size={20} color={colors.textInverse} />
               <Text style={styles.saveButtonText}>Enregistrer le produit</Text>
             </>
           )}
@@ -390,255 +377,183 @@ export default function AddProductScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#F5F5F7",
-  },
-  scrollView: {
-    flex: 1,
-  },
-  scrollContent: {
-    paddingBottom: 100,
-  },
-  cameraContainer: {
-    flex: 1,
-    backgroundColor: "#000",
-  },
-  camera: {
-    flex: 1,
-  },
-  cameraControls: {
-    position: "absolute" as const,
-    bottom: 40,
-    left: 0,
-    right: 0,
-    flexDirection: "row" as const,
-    justifyContent: "space-between" as const,
-    alignItems: "center" as const,
-    paddingHorizontal: 40,
-  },
-  cameraButton: {
-    width: 60,
-    height: 60,
-    justifyContent: "center" as const,
-    alignItems: "center" as const,
-  },
-  captureButton: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: "#FFF",
-    justifyContent: "center" as const,
-    alignItems: "center" as const,
-    borderWidth: 4,
-    borderColor: "rgba(255, 255, 255, 0.3)",
-  },
-  captureButtonInner: {
-    width: 68,
-    height: 68,
-    borderRadius: 34,
-    backgroundColor: "#FFF",
-  },
-  imageSection: {
-    backgroundColor: "#FFF",
-    padding: 20,
-    alignItems: "center" as const,
-  },
-  productImage: {
-    width: 200,
-    height: 200,
-    borderRadius: 12,
-  },
-  removeImageButton: {
-    position: "absolute" as const,
-    top: 8,
-    right: 8,
-    backgroundColor: "#FF3B30",
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    justifyContent: "center" as const,
-    alignItems: "center" as const,
-  },
-  imagePlaceholder: {
-    width: 200,
-    height: 200,
-    backgroundColor: "#F5F5F7",
-    borderRadius: 12,
-    justifyContent: "center" as const,
-    alignItems: "center" as const,
-    gap: 8,
-  },
-  imagePlaceholderText: {
-    fontSize: 14,
-    color: "#999",
-  },
-  imageButtons: {
-    flexDirection: "row" as const,
-    gap: 12,
-    marginTop: 16,
-  },
-  imageButton: {
-    flexDirection: "row" as const,
-    alignItems: "center" as const,
-    gap: 8,
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    backgroundColor: "#F5F5F7",
-    borderRadius: 8,
-  },
-  imageButtonText: {
-    fontSize: 16,
-    fontWeight: "600" as const,
-    color: "#007AFF",
-  },
-  form: {
-    padding: 20,
-    gap: 20,
-  },
-  inputGroup: {
-    gap: 8,
-  },
-  label: {
-    fontSize: 15,
-    fontWeight: "600" as const,
-    color: "#000",
-  },
-  input: {
-    backgroundColor: "#FFF",
-    borderRadius: 10,
-    paddingHorizontal: 16,
-    paddingVertical: 20,
-    fontSize: 16,
-    color: "#000",
-    borderWidth: 1,
-    borderColor: "#E5E5EA",
-  },
-  inputSelect: {
-    backgroundColor: "#FFF",
-    borderRadius: 10,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    fontSize: 16,
-    color: "#000",
-    borderWidth: 1,
-    borderColor: "#E5E5EA",
-  },
-  inputText: {
-    fontSize: 16,
-    color: "#000",
-  },
-  inputPlaceholder: {
-    fontSize: 16,
-    color: "#999",
-  },
-  textArea: {
-    height: 100,
-    paddingTop: 14,
-  },
-  row: {
-    flexDirection: "row" as const,
-    gap: 12,
-  },
-  flex1: {
-    flex: 1,
-  },
-  brandPicker: {
-    maxHeight: 200,
-    backgroundColor: "#FFF",
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: "#E5E5EA",
-  },
-  brandOption: {
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    borderBottomWidth: 1,
-    borderBottomColor: "#F5F5F7",
-  },
-  brandOptionText: {
-    fontSize: 16,
-    color: "#000",
-  },
-  footer: {
-    position: "absolute" as const,
-    bottom: 0,
-    left: 0,
-    right: 0,
-    padding: 20,
-    backgroundColor: "#FFF",
-    borderTopWidth: 1,
-    borderTopColor: "#E5E5EA",
-  },
-  button: {
-    flexDirection: "row" as const,
-    alignItems: "center" as const,
-    justifyContent: "center" as const,
-    paddingVertical: 16,
-    borderRadius: 12,
-    gap: 8,
-  },
-  saveButton: {
-    backgroundColor: "#007AFF",
-  },
-  saveButtonText: {
-    fontSize: 17,
-    fontWeight: "600" as const,
-    color: "#FFF",
-  },
-  buttonDisabled: {
-    opacity: 0.6,
-  },
-  error: {
-    fontSize: 14,
-    color: "#FF3B30",
-  },
-  picker: {},
-  pickerOption: {},
-  pickerOptionText: {},
-});
-// const handleSave = async () => {
-//   if (!name.trim()) {
-//     Alert.alert("Erreur de validation", "Veuillez saisir le nom du produit");
-//     return;
-//   }
-//   if (!brand.trim()) {
-//     Alert.alert("Validation Error", "Veuillez sélectionner une marque");
-//     return;
-//   }
-//   if (!category.trim()) {
-//     Alert.alert(
-//       "Erreur de validation",
-//       "Veuillez sélectionner une catégorie"
-//     );
-//     return;
-//   }
-//   if (!price.trim() || isNaN(Number(price)) || Number(price) <= 0) {
-//     Alert.alert("Validation Error", "Veuillez saisir un prix valide");
-//     return;
-//   }
-//   if (!quantity.trim() || isNaN(Number(quantity)) || Number(quantity) < 0) {
-//     Alert.alert("Validation Error", "Veuillez saisir une quantité valide");
-//     return;
-//   }
-
-//   try {
-//     const product: NewProduct = {
-//       name: name.trim(),
-//       brand: brand.trim(),
-//       price: Number(price),
-//       category: category.trim() as any,
-//       description: description.trim(),
-//       quantity: Number(quantity),
-//       dateAdded: new Date().toISOString(),
-//       imageUri,
-//     };
-
-//     await addProduct(product);
-//     router.back();
-//   } catch (error) {
-//     console.error("Error adding product:", error);
-//     Alert.alert("Erreur", "Impossible d'ajouter le produit");
-//   }
-// };
+const createStyles = (colors: ThemeColors) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: colors.background,
+    },
+    scrollContent: { paddingBottom: 220 },
+    cameraContainer: {
+      flex: 1,
+      backgroundColor: "#000",
+    },
+    camera: {
+      flex: 1,
+    },
+    cameraControls: {
+      position: "absolute" as const,
+      bottom: 40,
+      left: 0,
+      right: 0,
+      flexDirection: "row" as const,
+      justifyContent: "space-between" as const,
+      alignItems: "center" as const,
+      paddingHorizontal: 40,
+    },
+    cameraButton: {
+      width: 60,
+      height: 60,
+      justifyContent: "center" as const,
+      alignItems: "center" as const,
+    },
+    captureButton: {
+      width: 80,
+      height: 80,
+      borderRadius: 40,
+      backgroundColor: colors.surface,
+      justifyContent: "center" as const,
+      alignItems: "center" as const,
+      borderWidth: 4,
+      borderColor: "rgba(255, 255, 255, 0.3)",
+    },
+    captureButtonInner: {
+      width: 68,
+      height: 68,
+      borderRadius: 34,
+      backgroundColor: colors.surface,
+    },
+    imageSection: {
+      backgroundColor: colors.surface,
+      padding: 20,
+      alignItems: "center" as const,
+    },
+    productImage: {
+      width: 200,
+      height: 200,
+      borderRadius: 12,
+    },
+    removeImageButton: {
+      position: "absolute" as const,
+      top: 8,
+      right: 8,
+      backgroundColor: colors.danger,
+      width: 28,
+      height: 28,
+      borderRadius: 14,
+      justifyContent: "center" as const,
+      alignItems: "center" as const,
+    },
+    imagePlaceholder: {
+      width: 200,
+      height: 200,
+      backgroundColor: colors.inputBackground,
+      borderRadius: 12,
+      justifyContent: "center" as const,
+      alignItems: "center" as const,
+      gap: 8,
+    },
+    imagePlaceholderText: {
+      fontSize: 14,
+      color: colors.textMuted,
+    },
+    imageButtons: {
+      flexDirection: "row" as const,
+      gap: 12,
+      marginTop: 16,
+    },
+    imageButton: {
+      flexDirection: "row" as const,
+      alignItems: "center" as const,
+      gap: 8,
+      paddingHorizontal: 20,
+      paddingVertical: 10,
+      backgroundColor: colors.inputBackground,
+      borderRadius: 8,
+    },
+    imageButtonText: {
+      fontSize: 16,
+      fontWeight: "600" as const,
+      color: colors.primary,
+    },
+    form: {
+      padding: 20,
+      gap: 20,
+    },
+    inputGroup: {
+      gap: 8,
+    },
+    label: {
+      fontSize: 15,
+      fontWeight: "600" as const,
+      color: colors.text,
+    },
+    input: {
+      backgroundColor: colors.inputBackground,
+      borderRadius: 10,
+      paddingHorizontal: 16,
+      paddingVertical: 20,
+      fontSize: 16,
+      color: colors.inputText,
+      borderWidth: 1,
+      borderColor: colors.inputBorder,
+    },
+    inputSelect: {
+      backgroundColor: colors.inputBackground,
+      borderRadius: 10,
+      paddingHorizontal: 16,
+      paddingVertical: 14,
+      fontSize: 16,
+      color: colors.inputText,
+      borderWidth: 1,
+      borderColor: colors.inputBorder,
+    },
+    inputPlaceholder: {
+      fontSize: 16,
+      color: colors.inputPlaceholder,
+    },
+    textArea: {
+      height: 100,
+      paddingTop: 14,
+    },
+    row: {
+      flexDirection: "row" as const,
+      gap: 12,
+    },
+    flex1: {
+      flex: 1,
+    },
+    footer: {
+      position: "absolute" as const,
+      bottom: 0,
+      left: 0,
+      right: 0,
+      padding: 20,
+      backgroundColor: colors.surface,
+      borderTopWidth: 1,
+      borderTopColor: colors.border,
+    },
+    button: {
+      flexDirection: "row" as const,
+      alignItems: "center" as const,
+      justifyContent: "center" as const,
+      paddingVertical: 16,
+      borderRadius: 12,
+      gap: 8,
+    },
+    saveButton: {
+      backgroundColor: colors.primary,
+    },
+    saveButtonText: {
+      fontSize: 17,
+      fontWeight: "600" as const,
+      color: colors.textInverse,
+    },
+    buttonDisabled: {
+      opacity: 0.6,
+    },
+    error: {
+      fontSize: 14,
+      color: colors.danger,
+    },
+  });

@@ -1,6 +1,9 @@
+import { PRODUCT_BRANDS } from "@/core/constants/brands";
 import { PRODUCT_CATEGORIES } from "@/core/constants/categories";
-import { useInventory } from "@/core/contexts/InventoryContext";
+import { useProduct } from "@/core/contexts/ProductContext";
+import { Product } from "@/core/entity/product.entity";
 import { formatAriary } from "@/core/utils/currency.utils";
+import { useTheme } from "@/theme/ThemeProvider";
 import { Image } from "expo-image";
 import { useRouter } from "expo-router";
 import { AlertCircle, Plus, Search, X } from "lucide-react-native";
@@ -16,22 +19,18 @@ import {
   TextInput,
   View,
 } from "react-native";
-import { PRODUCT_BRANDS } from "../../../core/constants/brands";
-import type { Product } from "../../../core/types/inventory";
-
-const CustomStickyHeader: React.FC<{ title: string }> = ({ title }) => (
-  <View>
-    <Text>{title}</Text>
-  </View>
-);
 
 export default function ProductsScreen() {
   const router = useRouter();
-  const { products, isLoadingProducts, deleteProduct, isDeletingProduct } =
-    useInventory();
+  const { colors } = useTheme();
+  const { products, productsLoading, productsError, productsRefetch } =
+    useProduct();
+
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedBrand, setSelectedBrand] = useState<string | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+
+  const styles = useMemo(() => createStyles(colors), [colors]);
 
   const filteredProducts = useMemo(() => {
     return products.filter((product) => {
@@ -59,7 +58,7 @@ export default function ProductsScreen() {
           style: "destructive",
           onPress: async () => {
             try {
-              await deleteProduct(id);
+              // await deleteProduct(id);
             } catch (error) {
               Alert.alert("Error", "Échec de la suppression du produit");
               console.error("Erreur de suppression:", error);
@@ -90,7 +89,7 @@ export default function ProductsScreen() {
         )}
         {item.quantity <= 5 && (
           <View style={styles.lowStockBadge}>
-            <AlertCircle size={12} color="#FFF" />
+            <AlertCircle size={12} color={colors.textInverse} />
             <Text style={styles.lowStockText}>Faible</Text>
           </View>
         )}
@@ -108,7 +107,9 @@ export default function ProductsScreen() {
           {item.brand}
         </Text>
         <View style={styles.productDetails}>
-          <Text style={styles.productPrice}>{formatAriary(item.price)}</Text>
+          <Text style={styles.productPrice}>
+            {formatAriary(item.basePrice)}
+          </Text>
           <Text style={styles.productQuantity}>Stock: {item.quantity}</Text>
         </View>
       </View>
@@ -119,20 +120,24 @@ export default function ProductsScreen() {
     <View style={styles.container}>
       <View style={styles.searchContainer}>
         <View style={styles.searchInputWrapper}>
-          <Search size={20} color="#666" style={styles.searchIcon} />
+          <Search
+            size={20}
+            color={colors.textMuted}
+            style={styles.searchIcon}
+          />
           <TextInput
             style={styles.searchInput}
             placeholder="Rechercher des produits..."
             value={searchQuery}
             onChangeText={setSearchQuery}
-            placeholderTextColor="#999"
+            placeholderTextColor={colors.inputPlaceholder}
           />
           {searchQuery.length > 0 && (
             <Pressable
               onPress={() => setSearchQuery("")}
               style={styles.clearButton}
             >
-              <X size={20} color="#666" />
+              <X size={20} color={colors.textMuted} />
             </Pressable>
           )}
         </View>
@@ -230,9 +235,9 @@ export default function ProductsScreen() {
         </ScrollView>
       </View>
 
-      {isLoadingProducts || isDeletingProduct ? (
+      {productsLoading ? (
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#007AFF" />
+          <ActivityIndicator size="large" color={colors.primary} />
         </View>
       ) : filteredProducts.length === 0 ? (
         <View style={styles.emptyContainer}>
@@ -262,227 +267,230 @@ export default function ProductsScreen() {
         style={styles.fab}
         onPress={() => router.push("/(tabs)/products/add")}
       >
-        <Plus size={28} color="#FFF" />
+        <Plus size={28} color={colors.textInverse} />
       </Pressable>
     </View>
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#ffffff",
-    paddingTop: 30,
-  },
-  searchContainer: {
-    paddingHorizontal: 16,
-    paddingTop: 12,
-    paddingBottom: 8,
-    backgroundColor: "#FFF",
-  },
-  searchInputWrapper: {
-    flexDirection: "row" as const,
-    alignItems: "center" as const,
-    backgroundColor: "#F5F5F7",
-    borderRadius: 12,
-    paddingHorizontal: 12,
-  },
-  searchIcon: {
-    marginRight: 8,
-  },
-  searchInput: {
-    flex: 1,
-    height: 44,
-    fontSize: 16,
-    color: "#000",
-  },
-  clearButton: {
-    padding: 4,
-  },
-
-  filterContainer: { backgroundColor: "#ffffff", minHeight: 70, maxHeight: 70 },
-  filterTitle: {
-    fontSize: 18,
-    fontWeight: "600" as const,
-    color: "#252525",
-    paddingLeft: 14,
-  },
-  // BRANCH CHIPS
-  brandFilterContainer: {
-    paddingVertical: 10,
-    paddingLeft: 14,
-    borderBottomWidth: 1,
-    borderBottomColor: "#bdb9b9",
-  },
-  brandFilterContent: {
-    gap: 8,
-    height: "auto",
-  },
-  brandChip: {
-    display: "flex",
-    justifyContent: "center",
-    alignItems: "center",
-    paddingHorizontal: 16,
-    borderRadius: 20,
-    backgroundColor: "#ffffff",
-    borderWidth: 1,
-    borderColor: "#E5E5EA",
-    elevation: 5,
-  },
-  brandChipAll: {
-    display: "flex",
-    justifyContent: "center",
-    alignItems: "center",
-    paddingHorizontal: 16,
-    borderRadius: 20,
-    backgroundColor: "#1eee41",
-  },
-  brandChipActive: {
-    backgroundColor: "#007AFF",
-    borderColor: "#007AFF",
-  },
-  brandChipText: {
-    fontSize: 14,
-    fontWeight: "800" as const,
-    color: "#666",
-  },
-
-  brandChipTextActive: {
-    color: "#FFF",
-  },
-
-  // CONTAINER
-  loadingContainer: {
-    flex: 1,
-    justifyContent: "center" as const,
-    alignItems: "center" as const,
-  },
-  emptyContainer: {
-    flex: 1,
-    justifyContent: "center" as const,
-    alignItems: "center" as const,
-    paddingHorizontal: 40,
-  },
-  emptyText: {
-    fontSize: 20,
-    fontWeight: "600" as const,
-    color: "#666",
-    marginBottom: 8,
-  },
-  emptySubtext: {
-    fontSize: 16,
-    color: "#999",
-    textAlign: "center" as const,
-  },
-  productList: {
-    padding: 12,
-  },
-  productCard: {
-    flex: 1,
-    backgroundColor: "#FFF",
-    borderRadius: 8,
-    margin: 4,
-    overflow: "hidden",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  productImageContainer: {
-    position: "relative" as const,
-  },
-  productImage: {
-    width: "100%",
-    height: 140,
-  },
-  productImagePlaceholder: {
-    width: "100%",
-    height: 140,
-    backgroundColor: "#F5F5F7",
-    justifyContent: "center" as const,
-    alignItems: "center" as const,
-  },
-  placeholderText: {
-    color: "#999",
-    fontSize: 14,
-  },
-  lowStockBadge: {
-    position: "absolute" as const,
-    top: 8,
-    right: 8,
-    flexDirection: "row" as const,
-    alignItems: "center" as const,
-    backgroundColor: "#FF3B30",
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
-    gap: 4,
-  },
-  lowStockText: {
-    color: "#FFF",
-    fontSize: 12,
-    fontWeight: "600" as const,
-  },
-  categoryBadge: {
-    position: "absolute" as const,
-    top: 8,
-    left: 8,
-    flexDirection: "row" as const,
-    alignItems: "center" as const,
-    backgroundColor: "#ffffff",
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
-    gap: 4,
-  },
-  categoryBadgeText: {
-    color: "#3d3d3d",
-    fontSize: 12,
-    fontWeight: "600" as const,
-  },
-  productInfo: {
-    padding: 12,
-  },
-  productName: {
-    fontSize: 16,
-    fontWeight: "600" as const,
-    color: "#000",
-    marginBottom: 4,
-  },
-  productBrand: {
-    fontSize: 14,
-    color: "#666",
-    marginBottom: 8,
-  },
-  productDetails: {
-    flexDirection: "row" as const,
-    justifyContent: "space-between" as const,
-    alignItems: "center" as const,
-  },
-  productPrice: {
-    fontSize: 18,
-    fontWeight: "700" as const,
-    color: "#007AFF",
-  },
-  productQuantity: {
-    fontSize: 13,
-    color: "#666",
-  },
-  fab: {
-    position: "absolute" as const,
-    bottom: 24,
-    right: 24,
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: "#007AFF",
-    justifyContent: "center" as const,
-    alignItems: "center" as const,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 8,
-  },
-});
+const createStyles = (colors: ReturnType<typeof useTheme>["colors"]) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: colors.background,
+      paddingTop: 30,
+    },
+    searchContainer: {
+      paddingHorizontal: 16,
+      paddingTop: 12,
+      paddingBottom: 8,
+      backgroundColor: colors.surface,
+    },
+    searchInputWrapper: {
+      flexDirection: "row",
+      alignItems: "center",
+      backgroundColor: colors.inputBackground,
+      borderRadius: 12,
+      paddingHorizontal: 12,
+      borderWidth: 1,
+      borderColor: colors.inputBorder,
+    },
+    searchIcon: {
+      marginRight: 8,
+    },
+    searchInput: {
+      flex: 1,
+      height: 44,
+      fontSize: 16,
+      color: colors.inputText,
+    },
+    clearButton: {
+      padding: 4,
+    },
+    filterContainer: {
+      backgroundColor: colors.surface,
+      minHeight: 70,
+      maxHeight: 70,
+    },
+    filterTitle: {
+      fontSize: 18,
+      fontWeight: "600",
+      color: colors.text,
+      paddingLeft: 14,
+    },
+    brandFilterContainer: {
+      paddingVertical: 10,
+      paddingLeft: 14,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.border,
+    },
+    brandFilterContent: {
+      gap: 8,
+      height: "auto",
+    },
+    brandChip: {
+      display: "flex",
+      justifyContent: "center",
+      alignItems: "center",
+      paddingHorizontal: 16,
+      borderRadius: 20,
+      backgroundColor: colors.surfaceElevated,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    brandChipAll: {
+      display: "flex",
+      justifyContent: "center",
+      alignItems: "center",
+      paddingHorizontal: 16,
+      borderRadius: 20,
+      backgroundColor: colors.success,
+    },
+    brandChipActive: {
+      backgroundColor: colors.primary,
+      borderColor: colors.primary,
+    },
+    brandChipText: {
+      fontSize: 14,
+      fontWeight: "800",
+      color: colors.textSecondary,
+    },
+    brandChipTextActive: {
+      color: colors.textInverse,
+    },
+    loadingContainer: {
+      flex: 1,
+      justifyContent: "center",
+      alignItems: "center",
+    },
+    emptyContainer: {
+      flex: 1,
+      justifyContent: "center",
+      alignItems: "center",
+      paddingHorizontal: 40,
+    },
+    emptyText: {
+      fontSize: 20,
+      fontWeight: "600",
+      color: colors.textSecondary,
+      marginBottom: 8,
+    },
+    emptySubtext: {
+      fontSize: 16,
+      color: colors.textMuted,
+      textAlign: "center",
+    },
+    productList: {
+      padding: 12,
+    },
+    productCard: {
+      flex: 1,
+      backgroundColor: colors.surface,
+      borderRadius: 12,
+      margin: 4,
+      overflow: "hidden",
+      shadowColor: colors.shadow,
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.15,
+      shadowRadius: 8,
+      elevation: 3,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    productImageContainer: {
+      position: "relative",
+    },
+    productImage: {
+      width: "100%",
+      height: 140,
+    },
+    productImagePlaceholder: {
+      width: "100%",
+      height: 140,
+      backgroundColor: colors.inputBackground,
+      justifyContent: "center",
+      alignItems: "center",
+    },
+    placeholderText: {
+      color: colors.textMuted,
+      fontSize: 14,
+    },
+    lowStockBadge: {
+      position: "absolute",
+      top: 8,
+      right: 8,
+      flexDirection: "row",
+      alignItems: "center",
+      backgroundColor: colors.danger,
+      paddingHorizontal: 8,
+      paddingVertical: 4,
+      borderRadius: 12,
+      gap: 4,
+    },
+    lowStockText: {
+      color: colors.textInverse,
+      fontSize: 12,
+      fontWeight: "600",
+    },
+    categoryBadge: {
+      position: "absolute",
+      top: 8,
+      left: 8,
+      flexDirection: "row",
+      alignItems: "center",
+      backgroundColor: colors.surfaceElevated,
+      paddingHorizontal: 8,
+      paddingVertical: 4,
+      borderRadius: 12,
+      gap: 4,
+    },
+    categoryBadgeText: {
+      color: colors.text,
+      fontSize: 12,
+      fontWeight: "600",
+    },
+    productInfo: {
+      padding: 12,
+    },
+    productName: {
+      fontSize: 16,
+      fontWeight: "600",
+      color: colors.text,
+      marginBottom: 4,
+    },
+    productBrand: {
+      fontSize: 14,
+      color: colors.textSecondary,
+      marginBottom: 8,
+    },
+    productDetails: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "center",
+    },
+    productPrice: {
+      fontSize: 18,
+      fontWeight: "700",
+      color: colors.primary,
+    },
+    productQuantity: {
+      fontSize: 13,
+      color: colors.textSecondary,
+    },
+    fab: {
+      position: "absolute",
+      bottom: 24,
+      right: 24,
+      width: 60,
+      height: 60,
+      borderRadius: 30,
+      backgroundColor: colors.primary,
+      justifyContent: "center",
+      alignItems: "center",
+      shadowColor: colors.shadow,
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.3,
+      shadowRadius: 8,
+      elevation: 8,
+    },
+  });
