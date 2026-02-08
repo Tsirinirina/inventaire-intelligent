@@ -1,10 +1,11 @@
 import { TabScreen, TopTabs } from "@/components/tabs/TopTabs";
+import ScreenContainer from "@/components/ui/ScreenContainer";
 import { useTheme } from "@/theme/ThemeProvider";
 import { StyleSheet, Text, View } from "react-native";
 
 export default function ProductsScreen() {
   return (
-    <View style={{ flex: 1, paddingTop: 50 }}>
+    <ScreenContainer safeTop refreshing={false} onRefresh={() => ""}>
       <TopTabs>
         <TabScreen label="Updates">
           <View style={{ padding: 20 }}>
@@ -18,7 +19,7 @@ export default function ProductsScreen() {
           </View>
         </TabScreen>
       </TopTabs>
-    </View>
+    </ScreenContainer>
   );
 }
 

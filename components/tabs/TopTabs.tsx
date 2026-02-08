@@ -55,7 +55,6 @@ const createStyles = (colors: ReturnType<typeof useTheme>["colors"]) =>
   StyleSheet.create({
     container: {
       flex: 1,
-      paddingHorizontal: 24,
     },
     tabBar: {
       flexDirection: "row",

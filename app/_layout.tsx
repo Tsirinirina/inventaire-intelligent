@@ -13,6 +13,7 @@ import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
 import React, { useEffect } from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
+import { SafeAreaProvider } from "react-native-safe-area-context";
 
 SplashScreen.preventAutoHideAsync();
 const queryClient = new QueryClient();
@@ -35,7 +36,9 @@ export default function RootLayout() {
                     <ThemeProvider>
                       <ToastProvider>
                         <StatusBar style="light" />
-                        <Stack screenOptions={{ headerShown: false }} />
+                        <SafeAreaProvider>
+                          <Stack screenOptions={{ headerShown: false }} />
+                        </SafeAreaProvider>
                         <ToastContainer />
                       </ToastProvider>
                     </ThemeProvider>

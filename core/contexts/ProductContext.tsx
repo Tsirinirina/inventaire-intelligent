@@ -36,17 +36,16 @@ export const [ProductProvider, useProduct] = createContextHook(() => {
    * Update product query
    */
   const updateProductQuery = useUpdateProductQuery(queryClient);
-  const updateProductState = useMutationState(
-    "update",
-    PRODUCT_QUERY_KEY,
-    updateProductQuery,
-  );
+  const { updateProduct, productUpdating, productUpdatingError } =
+    useMutationState("update", PRODUCT_QUERY_KEY, updateProductQuery);
 
   return {
     ...getAllProductsState,
     addProduct,
     productAdding,
     productAddingError,
-    ...updateProductState,
+    updateProduct,
+    productUpdating,
+    productUpdatingError,
   };
 });
