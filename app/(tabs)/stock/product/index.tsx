@@ -1,5 +1,5 @@
-import ProductsScreen from "@/olds/(products)";
+import ProductsListScreen from "@/components/screen/ProductListScreen";
 
 export default function ProductStock() {
-  return <ProductsScreen />;
+  return <ProductsListScreen />;
 }

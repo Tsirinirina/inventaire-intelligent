@@ -1,7 +1,7 @@
 import { PRODUCT_BRANDS } from "@/core/constants/brands";
-import { PRODUCT_CATEGORIES } from "@/core/constants/categories";
 import { useProduct } from "@/core/contexts/ProductContext";
 import { Product } from "@/core/entity/product.entity";
+import { PRODUCT_MOCK } from "@/core/mock/productMock";
 import { formatAriary } from "@/core/utils/currency.utils";
 import { useTheme } from "@/theme/ThemeProvider";
 import { Image } from "expo-image";
@@ -11,19 +11,31 @@ import { useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
+  FlatList,
   Pressable,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
   View,
 } from "react-native";
-import { FlatList, ScrollView } from "react-native-gesture-handler";
 
 export default function ProductsListScreen() {
   const router = useRouter();
   const { colors } = useTheme();
-  const { products, productsLoading, productsError, productsRefetch } =
-    useProduct();
+  const {
+    products,
+    productsLoading,
+    productsError,
+    productsRefetch,
+    addProduct,
+  } = useProduct();
+
+  const handleCreateMock = () => {
+    for (const product of PRODUCT_MOCK) {
+      addProduct(product);
+    }
+  };
 
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [selectedBrand, setSelectedBrand] = useState<string | null>(null);
@@ -144,6 +156,7 @@ export default function ProductsListScreen() {
         </View>
       </View>
 
+      {/* FILTER  */}
       <View style={styles.filterContainer}>
         <Text style={styles.filterTitle}>Marques des produits</Text>
         <ScrollView
@@ -190,7 +203,8 @@ export default function ProductsListScreen() {
         </ScrollView>
       </View>
 
-      <View style={styles.filterContainer}>
+      {/* FILTER  */}
+      {/* <View style={styles.filterContainer}>
         <Text style={styles.filterTitle}>Catégories des produits</Text>
         <ScrollView
           horizontal
@@ -234,7 +248,7 @@ export default function ProductsListScreen() {
             </Pressable>
           ))}
         </ScrollView>
-      </View>
+      </View> */}
 
       {productsLoading ? (
         <View style={styles.loadingContainer}>
@@ -377,9 +391,7 @@ const createStyles = (colors: ReturnType<typeof useTheme>["colors"]) =>
       color: colors.textMuted,
       textAlign: "center",
     },
-    productList: {
-      flex: 1,
-    },
+    productList: { gap: 4 },
     productCard: {
       flex: 1,
       backgroundColor: colors.surface,
