@@ -9,7 +9,7 @@ export default function AccessoryLayout() {
         options={{
           presentation: "modal",
           headerShown: true,
-          title: "Ajouter un accessoire",
+          title: "Ajouter une accessoire",
         }}
       />
       <Stack.Screen

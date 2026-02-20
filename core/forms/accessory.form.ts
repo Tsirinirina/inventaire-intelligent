@@ -1,8 +1,7 @@
 import { z } from "zod";
-export const productSchema = z.object({
+export const accessorySchema = z.object({
   name: z.string().min(1, "Le nom du produit est requis"),
-  brand: z.string().min(1, "La marque est requise"),
-  category: z.string().optional(),
+  category: z.string().min(1, "Le catégorie est requis"),
   basePrice: z
     .string()
     .min(1, "Prix requis")
@@ -14,12 +13,11 @@ export const productSchema = z.object({
   description: z.string().optional(),
 });
 
-export type ProductForm = z.infer<typeof productSchema>;
+export type AccessoryForm = z.infer<typeof accessorySchema>;
 
-export const productFormDefaultValues: ProductForm = {
+export const accessoryFormDefaultValues: AccessoryForm = {
   name: "",
-  brand: "",
-  category: "smartphone",
+  category: "",
   basePrice: "",
   quantity: "",
   description: "",

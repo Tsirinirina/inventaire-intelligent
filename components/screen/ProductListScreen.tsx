@@ -320,7 +320,6 @@ const createStyles = (colors: ReturnType<typeof useTheme>["colors"]) =>
       padding: 4,
     },
     filterContainer: {
-      backgroundColor: colors.surface,
       minHeight: 70,
       maxHeight: 70,
     },
@@ -332,8 +331,6 @@ const createStyles = (colors: ReturnType<typeof useTheme>["colors"]) =>
     },
     brandFilterContainer: {
       paddingVertical: 10,
-      borderBottomWidth: 1,
-      borderBottomColor: colors.border,
     },
     brandFilterContent: {
       gap: 8,
@@ -362,7 +359,7 @@ const createStyles = (colors: ReturnType<typeof useTheme>["colors"]) =>
       borderColor: colors.primary,
     },
     brandChipText: {
-      fontSize: 14,
+      fontSize: 16,
       fontWeight: "800",
       color: colors.textSecondary,
     },
@@ -483,8 +480,9 @@ const createStyles = (colors: ReturnType<typeof useTheme>["colors"]) =>
       color: colors.primary,
     },
     productQuantity: {
-      fontSize: 13,
+      fontSize: 16,
       color: colors.textSecondary,
+      fontWeight: "600",
     },
     fab: {
       position: "absolute",

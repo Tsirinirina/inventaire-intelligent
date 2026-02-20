@@ -18,6 +18,7 @@ import {
 import { ACCESSORY_CATEGORIES } from "@/core/constants/categories";
 import { useAccessory } from "@/core/contexts/AccessoryContext";
 import { Accessory } from "@/core/entity/accessory.entity";
+import { capitalizeWords } from "@/core/utils/capitalize.utils";
 import { useTheme } from "@/theme/ThemeProvider";
 import { ThemeColors } from "@/theme/colors";
 
@@ -75,7 +76,7 @@ export default function AccessoriesScreen() {
   const renderProduct = ({ item }: { item: Accessory }) => (
     <Pressable
       style={styles.productCard}
-      onPress={() => router.push(`/(tabs)/accessory/edit/${item.id}`)}
+      onPress={() => router.push(`/(tabs)/stock/accessory/edit/${item.id}`)}
       onLongPress={() => handleDeleteAccessory(item.id, item.name)}
     >
       <View style={styles.productImageContainer}>
@@ -102,7 +103,7 @@ export default function AccessoriesScreen() {
           {item.name}
         </Text>
         <Text style={styles.productBrand} numberOfLines={1}>
-          {item.category}
+          {capitalizeWords(item.category)}
         </Text>
         <View style={styles.productDetails}>
           <Text style={styles.productPrice}>
@@ -181,7 +182,7 @@ export default function AccessoriesScreen() {
                   selectedCategory === category && styles.brandChipTextActive,
                 ]}
               >
-                {category}
+                {capitalizeWords(category)}
               </Text>
             </Pressable>
           ))}
@@ -218,7 +219,7 @@ export default function AccessoriesScreen() {
 
       <Pressable
         style={styles.fab}
-        onPress={() => router.push("/(tabs)/accessory/add")}
+        onPress={() => router.push("/(tabs)/stock/accessory/add")}
       >
         <Plus size={28} color={colors.textInverse} />
       </Pressable>
@@ -230,21 +231,20 @@ const createStyles = (colors: ThemeColors) =>
   StyleSheet.create({
     container: {
       flex: 1,
-      backgroundColor: colors.background,
-      paddingTop: 30,
     },
     searchContainer: {
-      paddingHorizontal: 16,
       paddingTop: 12,
       paddingBottom: 8,
       backgroundColor: colors.surface,
     },
     searchInputWrapper: {
-      flexDirection: "row" as const,
-      alignItems: "center" as const,
+      flexDirection: "row",
+      alignItems: "center",
       backgroundColor: colors.inputBackground,
       borderRadius: 12,
       paddingHorizontal: 12,
+      borderWidth: 1,
+      borderColor: colors.inputBorder,
     },
     searchIcon: {
       marginRight: 8,
@@ -259,7 +259,6 @@ const createStyles = (colors: ThemeColors) =>
       padding: 4,
     },
     filterContainer: {
-      backgroundColor: colors.surface,
       minHeight: 70,
       maxHeight: 70,
     },
@@ -271,9 +270,6 @@ const createStyles = (colors: ThemeColors) =>
     },
     brandFilterContainer: {
       paddingVertical: 10,
-      paddingLeft: 14,
-      borderBottomWidth: 1,
-      borderBottomColor: colors.border,
     },
     brandFilterContent: {
       gap: 8,
@@ -285,10 +281,9 @@ const createStyles = (colors: ThemeColors) =>
       alignItems: "center",
       paddingHorizontal: 16,
       borderRadius: 20,
-      backgroundColor: colors.surface,
+      backgroundColor: colors.surfaceElevated,
       borderWidth: 1,
       borderColor: colors.border,
-      elevation: 5,
     },
     brandChipAll: {
       display: "flex",
@@ -303,7 +298,7 @@ const createStyles = (colors: ThemeColors) =>
       borderColor: colors.primary,
     },
     brandChipText: {
-      fontSize: 14,
+      fontSize: 16,
       fontWeight: "800" as const,
       color: colors.textSecondary,
     },
@@ -332,9 +327,7 @@ const createStyles = (colors: ThemeColors) =>
       color: colors.textMuted,
       textAlign: "center" as const,
     },
-    productList: {
-      padding: 12,
-    },
+    productList: { gap: 4 },
     productCard: {
       flex: 1,
       backgroundColor: colors.surface,
@@ -407,8 +400,9 @@ const createStyles = (colors: ThemeColors) =>
       color: colors.primary,
     },
     productQuantity: {
-      fontSize: 13,
+      fontSize: 16,
       color: colors.textSecondary,
+      fontWeight: "600",
     },
     fab: {
       position: "absolute" as const,

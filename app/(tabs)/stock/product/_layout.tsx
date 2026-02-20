@@ -1,5 +1,4 @@
 import { Stack } from "expo-router";
-import { Platform } from "react-native";
 
 export default function ProductsLayout() {
   return (
@@ -17,7 +16,15 @@ export default function ProductsLayout() {
           title: "Ajouter un produit",
           animation: "ios_from_right",
           headerLargeTitle: true,
-          headerTransparent: Platform.OS === "ios",
+          // headerTransparent: Platform.OS === "ios",
+          // headerTransparent: true,
+          headerBlurEffect: "systemUltraThinMaterialLight",
+          // headerStyle: {
+          //   backgroundColor:
+          //     Platform.OS === "android"
+          //       ? "rgba(255, 255, 255, 0.8)"
+          //       : "transparent",
+          // },
         }}
       />
       <Stack.Screen

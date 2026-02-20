@@ -1,20 +1,21 @@
-import { PRODUCT_BRANDS } from "@/core/constants/brands";
-import { PRODUCT_CATEGORIES } from "@/core/constants/categories";
-import { useProduct } from "@/core/contexts/ProductContext";
-import { NewProduct } from "@/core/entity/product.entity";
+import { ACCESSORY_CATEGORIES } from "@/core/constants/categories";
+import { useAccessory } from "@/core/contexts/AccessoryContext";
+import { Accessory } from "@/core/entity/accessory.entity";
 import {
-  ProductForm,
-  productFormDefaultValues,
-  productSchema,
-} from "@/core/forms/product.form";
+  AccessoryForm,
+  accessoryFormDefaultValues,
+  accessorySchema,
+} from "@/core/forms/accessory.form";
+import { ThemeColors } from "@/theme/colors";
+import { useTheme } from "@/theme/ThemeProvider";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { CameraView, useCameraPermissions } from "expo-camera";
 import { Directory, File, Paths } from "expo-file-system";
 import { Image } from "expo-image";
 import * as ImagePicker from "expo-image-picker";
-import { useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { Camera, Check, Image as ImageIcon, X } from "lucide-react-native";
-import { useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import {
   ActivityIndicator,
@@ -28,16 +29,24 @@ import {
   TextInput,
   View,
 } from "react-native";
-import { DropdownSelect } from "react-native-input-select";
+import DropdownSelect from "react-native-input-select";
 
-import { useTheme } from "@/theme/ThemeProvider";
-import { ThemeColors } from "@/theme/colors";
-
-export default function AddProductScreen() {
+export default function EditAccessoryScreen() {
   const router = useRouter();
+  const { id } = useLocalSearchParams<{ id: string }>();
   const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
 
-  const { addProduct, productAdding } = useProduct();
+  const {
+    accessoryUpdating,
+    accessoryUpdatingError,
+    accessorys: accessories,
+    updateAccessory,
+  } = useAccessory();
+
+  const [accessory, setAccessory] = useState<Accessory | null>(null);
+  const [imageUri, setImageUri] = useState<string | undefined>(undefined);
+  const [showCamera, setShowCamera] = useState(false);
   const [permission, requestPermission] = useCameraPermissions();
   const cameraRef = useRef<CameraView>(null);
 
@@ -46,13 +55,22 @@ export default function AddProductScreen() {
     handleSubmit,
     setValue,
     formState: { errors },
-  } = useForm<ProductForm>({
-    resolver: zodResolver(productSchema),
-    defaultValues: productFormDefaultValues,
+  } = useForm<AccessoryForm>({
+    resolver: zodResolver(accessorySchema),
+    defaultValues: accessoryFormDefaultValues,
   });
 
-  const [imageUri, setImageUri] = useState<string | undefined>(undefined);
-  const [showCamera, setShowCamera] = useState(false);
+  useEffect(() => {
+    const foundAccessory = accessories.find((p) => p.id === Number(id));
+    if (foundAccessory) {
+      setAccessory(foundAccessory);
+      setValue("name", foundAccessory.name);
+      setValue("basePrice", foundAccessory.basePrice.toString());
+      setValue("category", foundAccessory.category);
+      setValue("quantity", foundAccessory.quantity.toString());
+      setImageUri(foundAccessory.imageUri);
+    }
+  }, [id, accessories]);
 
   const handleTakePhoto = async () => {
     if (!permission?.granted) {
@@ -74,12 +92,12 @@ export default function AddProductScreen() {
     try {
       const photo = await cameraRef.current.takePictureAsync();
       if (photo?.uri) {
-        const imagesDir = new Directory(Paths.document, "product-images");
+        const imagesDir = new Directory(Paths.document, "accessory-images");
         if (!imagesDir.exists) {
           imagesDir.create({ intermediates: true });
         }
 
-        const filename = `product-${Date.now()}.jpg`;
+        const filename = `accessory-${Date.now()}.jpg`;
         const destination = new File(imagesDir, filename);
         const sourceFile = new File(photo.uri);
         sourceFile.copy(destination);
@@ -89,7 +107,7 @@ export default function AddProductScreen() {
       setShowCamera(false);
     } catch (error) {
       console.error("Erreur lors de la prise de la photo:", error);
-      Alert.alert("Error", "Impossible de prendre la photo");
+      Alert.alert("Erreur", "Impossible de prendre la photo");
     }
   };
 
@@ -103,12 +121,12 @@ export default function AddProductScreen() {
 
     if (!result.canceled && result.assets[0]) {
       try {
-        const imagesDir = new Directory(Paths.document, "product-images");
+        const imagesDir = new Directory(Paths.document, "accessory-images");
         if (!imagesDir.exists) {
           imagesDir.create({ intermediates: true });
         }
 
-        const filename = `product-${Date.now()}.jpg`;
+        const filename = `accessory-${Date.now()}.jpg`;
         const destination = new File(imagesDir, filename);
         const sourceFile = new File(result.assets[0].uri);
         sourceFile.copy(destination);
@@ -121,93 +139,122 @@ export default function AddProductScreen() {
     }
   };
 
-  const onSubmit = async (data: ProductForm) => {
+  const onSubmit = async (data: AccessoryForm) => {
     try {
-      const product: NewProduct = {
-        ...data,
+      const updatedAccessory: Accessory = {
+        ...(accessory as any),
         name: data.name.trim(),
-        brand: data.brand.trim(),
         category: data.category as any,
-        basePrice: Number(data.price),
+        basePrice: Number(data.basePrice),
+        description: data.description,
         quantity: Number(data.quantity),
-        description: data.description?.trim() as any,
-        createdAt: new Date().toISOString(),
-        stockUpdatedAt: new Date().toISOString(),
         imageUri,
       };
 
-      await addProduct(product);
+      await updateAccessory(updatedAccessory);
       router.back();
     } catch (error) {
-      console.error("Error adding product:", error);
-      Alert.alert("Erreur", "Impossible d'ajouter le produit");
+      console.error("Erreur lors de la mise à jour du produit:", error);
+      Alert.alert("Erreur", "Échec de la mise à jour du produit");
     }
   };
 
-  const styles = createStyles(colors);
+  const handleDelete = () => {
+    // if (!accessory) return;
+    // Alert.alert(
+    //   "Supprimer le produit",
+    //   `Êtes-vous sûr de vouloir supprimer "${accessory.name}"?`,
+    //   [
+    //     { text: "Annuler", style: "cancel" },
+    //     {
+    //       text: "Supprimer",
+    //       style: "destructive",
+    //       onPress: async () => {
+    //         try {
+    //           await deleteAccessory(accessory.id);
+    //           router.back();
+    //         } catch (error) {
+    //           console.error(
+    //             "Erreur lors de la suppression de l'accessoire:",
+    //             error,
+    //           );
+    //           Alert.alert("Erreur", "Échec de la suppression de l'accessoire");
+    //         }
+    //       },
+    //     },
+    //   ],
+    // );
+  };
+
+  if (!accessory) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#007AFF" />
+      </View>
+    );
+  }
 
   if (showCamera) {
     return (
-      <KeyboardAvoidingView
-        style={{ flex: 1 }}
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
-      >
-        <View style={styles.cameraContainer}>
-          <CameraView ref={cameraRef} style={styles.camera} facing="back">
-            <View style={styles.cameraControls}>
-              <Pressable
-                style={styles.cameraButton}
-                onPress={() => setShowCamera(false)}
-              >
-                <X size={24} color={colors.textInverse} />
-              </Pressable>
-              <Pressable
-                style={styles.captureButton}
-                onPress={handleCapturePhoto}
-              >
-                <View style={styles.captureButtonInner} />
-              </Pressable>
-              <View style={styles.cameraButton} />
-            </View>
-          </CameraView>
-        </View>
-      </KeyboardAvoidingView>
+      <View style={styles.cameraContainer}>
+        <CameraView ref={cameraRef} style={styles.camera} facing="back">
+          <View style={styles.cameraControls}>
+            <Pressable
+              style={styles.cameraButton}
+              onPress={() => setShowCamera(false)}
+            >
+              <X size={24} color="#FFF" />
+            </Pressable>
+            <Pressable
+              style={styles.captureButton}
+              onPress={handleCapturePhoto}
+            >
+              <View style={styles.captureButtonInner} />
+            </Pressable>
+            <View style={styles.cameraButton} />
+          </View>
+        </CameraView>
+      </View>
     );
   }
 
   return (
     <KeyboardAvoidingView
       style={styles.container}
-      behavior={Platform.OS === "ios" ? "padding" : undefined}
-      keyboardVerticalOffset={100}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
     >
-      <ScrollView contentContainerStyle={styles.scrollContent}>
+      <ScrollView
+        style={styles.scrollView}
+        contentContainerStyle={styles.scrollContent}
+      >
         <View style={styles.imageSection}>
           {imageUri ? (
             <View>
-              <Image source={{ uri: imageUri }} style={styles.productImage} />
+              <Image
+                source={{ uri: imageUri }}
+                style={styles.accessoryImage}
+                contentFit="cover"
+              />
               <Pressable
                 style={styles.removeImageButton}
                 onPress={() => setImageUri(undefined)}
               >
-                <X size={16} color={colors.textInverse} />
+                <X size={16} color="#FFF" />
               </Pressable>
             </View>
           ) : (
             <View style={styles.imagePlaceholder}>
-              <ImageIcon size={40} color={colors.textMuted} />
+              <ImageIcon size={40} color="#999" />
               <Text style={styles.imagePlaceholderText}>Aucune image</Text>
             </View>
           )}
-
           <View style={styles.imageButtons}>
             <Pressable style={styles.imageButton} onPress={handleTakePhoto}>
-              <Camera size={20} color={colors.primary} />
+              <Camera size={20} color="#007AFF" />
               <Text style={styles.imageButtonText}>Caméra</Text>
             </Pressable>
-
             <Pressable style={styles.imageButton} onPress={handlePickImage}>
-              <ImageIcon size={20} color={colors.primary} />
+              <ImageIcon size={20} color="#007AFF" />
               <Text style={styles.imageButtonText}>Galerie</Text>
             </Pressable>
           </View>
@@ -238,31 +285,6 @@ export default function AddProductScreen() {
           <View style={styles.inputGroup}>
             <Controller
               control={control}
-              name="brand"
-              render={({ field, fieldState }) => (
-                <DropdownSelect
-                  label="Marque *"
-                  labelStyle={styles.label}
-                  dropdownStyle={styles.inputSelect}
-                  placeholderStyle={styles.inputPlaceholder}
-                  placeholder="Sélectionnez une marque"
-                  selectedValue={field.value}
-                  onValueChange={(value) => setValue("brand", value as any)}
-                  options={PRODUCT_BRANDS.map((b) => ({
-                    label: b,
-                    value: b,
-                  }))}
-                />
-              )}
-            />
-            {errors.brand && (
-              <Text style={styles.error}>{errors.brand.message}</Text>
-            )}
-          </View>
-
-          <View style={styles.inputGroup}>
-            <Controller
-              control={control}
               name="category"
               render={({ field, fieldState }) => (
                 <DropdownSelect
@@ -273,7 +295,7 @@ export default function AddProductScreen() {
                   placeholder="Sélectionnez une catégorie"
                   selectedValue={field.value}
                   onValueChange={(value) => setValue("category", value as any)}
-                  options={PRODUCT_CATEGORIES.map((c) => ({
+                  options={ACCESSORY_CATEGORIES.map((c) => ({
                     label: c,
                     value: c,
                   }))}
@@ -288,10 +310,10 @@ export default function AddProductScreen() {
           <View style={styles.row}>
             <Controller
               control={control}
-              name="price"
+              name="basePrice"
               render={({ field }) => (
                 <View style={[styles.inputGroup, styles.flex1]}>
-                  <Text style={styles.label}>Prix *</Text>
+                  <Text style={styles.label}>Prix de base *</Text>
                   <TextInput
                     value={field.value}
                     onChangeText={field.onChange}
@@ -301,8 +323,8 @@ export default function AddProductScreen() {
                     placeholder="0"
                     placeholderTextColor={colors.inputPlaceholder}
                   />
-                  {errors.price && (
-                    <Text style={styles.error}>{errors.price.message}</Text>
+                  {errors.basePrice && (
+                    <Text style={styles.error}>{errors.basePrice.message}</Text>
                   )}
                 </View>
               )}
@@ -355,20 +377,35 @@ export default function AddProductScreen() {
 
       <View style={styles.footer}>
         <Pressable
+          style={[styles.button, styles.deleteButton]}
+          onPress={handleDelete}
+          disabled={false}
+        >
+          {/* {isDeletingAccessory ? (
+            <ActivityIndicator color="#FFF" />
+          ) : (
+            <>
+              <Trash2 size={20} color="#FFF" />
+              <Text style={styles.deleteButtonText}>Supprimer</Text>
+            </>
+          )} */}
+          <Text style={styles.deleteButtonText}>Supprimer</Text>
+        </Pressable>
+        <Pressable
           style={[
             styles.button,
             styles.saveButton,
-            productAdding && styles.buttonDisabled,
+            accessoryUpdating && styles.buttonDisabled,
           ]}
           onPress={handleSubmit(onSubmit)}
-          disabled={productAdding}
+          disabled={accessoryUpdating}
         >
-          {productAdding ? (
-            <ActivityIndicator color={colors.textInverse} />
+          {accessoryUpdating ? (
+            <ActivityIndicator color="#FFF" />
           ) : (
             <>
-              <Check size={20} color={colors.textInverse} />
-              <Text style={styles.saveButtonText}>Enregistrer le produit</Text>
+              <Check size={20} color="#FFF" />
+              <Text style={styles.saveButtonText}>Enregistrer</Text>
             </>
           )}
         </Pressable>
@@ -383,7 +420,17 @@ const createStyles = (colors: ThemeColors) =>
       flex: 1,
       backgroundColor: colors.background,
     },
-    scrollContent: { paddingBottom: 220 },
+    scrollView: {
+      flex: 1,
+    },
+    scrollContent: {
+      paddingBottom: 100,
+    },
+    loadingContainer: {
+      flex: 1,
+      justifyContent: "center" as const,
+      alignItems: "center" as const,
+    },
     cameraContainer: {
       flex: 1,
       backgroundColor: "#000",
@@ -411,7 +458,7 @@ const createStyles = (colors: ThemeColors) =>
       width: 80,
       height: 80,
       borderRadius: 40,
-      backgroundColor: colors.surface,
+      backgroundColor: "#FFF",
       justifyContent: "center" as const,
       alignItems: "center" as const,
       borderWidth: 4,
@@ -421,14 +468,14 @@ const createStyles = (colors: ThemeColors) =>
       width: 68,
       height: 68,
       borderRadius: 34,
-      backgroundColor: colors.surface,
+      backgroundColor: "#FFF",
     },
     imageSection: {
-      backgroundColor: colors.surface,
+      backgroundColor: "#FFF",
       padding: 20,
       alignItems: "center" as const,
     },
-    productImage: {
+    accessoryImage: {
       width: 200,
       height: 200,
       borderRadius: 12,
@@ -437,7 +484,7 @@ const createStyles = (colors: ThemeColors) =>
       position: "absolute" as const,
       top: 8,
       right: 8,
-      backgroundColor: colors.danger,
+      backgroundColor: "#FF3B30",
       width: 28,
       height: 28,
       borderRadius: 14,
@@ -447,7 +494,7 @@ const createStyles = (colors: ThemeColors) =>
     imagePlaceholder: {
       width: 200,
       height: 200,
-      backgroundColor: colors.inputBackground,
+      backgroundColor: "#F5F5F7",
       borderRadius: 12,
       justifyContent: "center" as const,
       alignItems: "center" as const,
@@ -455,7 +502,7 @@ const createStyles = (colors: ThemeColors) =>
     },
     imagePlaceholderText: {
       fontSize: 14,
-      color: colors.textMuted,
+      color: "#999",
     },
     imageButtons: {
       flexDirection: "row" as const,
@@ -468,13 +515,13 @@ const createStyles = (colors: ThemeColors) =>
       gap: 8,
       paddingHorizontal: 20,
       paddingVertical: 10,
-      backgroundColor: colors.inputBackground,
+      backgroundColor: "#F5F5F7",
       borderRadius: 8,
     },
     imageButtonText: {
       fontSize: 16,
       fontWeight: "600" as const,
-      color: colors.primary,
+      color: "#007AFF",
     },
     form: {
       padding: 20,
@@ -486,31 +533,35 @@ const createStyles = (colors: ThemeColors) =>
     label: {
       fontSize: 15,
       fontWeight: "600" as const,
-      color: colors.text,
+      color: "#000",
     },
     input: {
-      backgroundColor: colors.inputBackground,
-      borderRadius: 10,
-      paddingHorizontal: 16,
-      paddingVertical: 20,
-      fontSize: 16,
-      color: colors.inputText,
-      borderWidth: 1,
-      borderColor: colors.inputBorder,
-    },
-    inputSelect: {
-      backgroundColor: colors.inputBackground,
+      backgroundColor: "#FFF",
       borderRadius: 10,
       paddingHorizontal: 16,
       paddingVertical: 14,
       fontSize: 16,
-      color: colors.inputText,
+      color: "#000",
       borderWidth: 1,
-      borderColor: colors.inputBorder,
+      borderColor: "#E5E5EA",
+    },
+    inputSelect: {
+      backgroundColor: "#FFF",
+      borderRadius: 10,
+      paddingHorizontal: 16,
+      paddingVertical: 14,
+      fontSize: 16,
+      color: "#000",
+      borderWidth: 1,
+      borderColor: "#E5E5EA",
+    },
+    inputText: {
+      fontSize: 16,
+      color: "#000",
     },
     inputPlaceholder: {
       fontSize: 16,
-      color: colors.inputPlaceholder,
+      color: "#999",
     },
     textArea: {
       height: 100,
@@ -523,15 +574,38 @@ const createStyles = (colors: ThemeColors) =>
     flex1: {
       flex: 1,
     },
+    brandPicker: {
+      maxHeight: 200,
+      backgroundColor: "#FFF",
+      borderRadius: 10,
+      borderWidth: 1,
+      borderColor: "#E5E5EA",
+    },
+    brandOption: {
+      paddingHorizontal: 16,
+      paddingVertical: 14,
+      borderBottomWidth: 1,
+      borderBottomColor: "#F5F5F7",
+    },
+    brandOptionText: {
+      fontSize: 16,
+      color: "#000",
+    },
     footer: {
       position: "absolute" as const,
       bottom: 0,
       left: 0,
       right: 0,
       padding: 20,
-      backgroundColor: colors.surface,
+      backgroundColor: "#FFF",
       borderTopWidth: 1,
-      borderTopColor: colors.border,
+      borderTopColor: "#E5E5EA",
+      display: "flex",
+      flexDirection: "row",
+      gap: 8,
+      width: "100%",
+      justifyContent: "space-around",
+      alignItems: "center",
     },
     button: {
       flexDirection: "row" as const,
@@ -540,20 +614,31 @@ const createStyles = (colors: ThemeColors) =>
       paddingVertical: 16,
       borderRadius: 12,
       gap: 8,
+      width: "auto",
+      paddingHorizontal: 20,
     },
     saveButton: {
-      backgroundColor: colors.primary,
+      backgroundColor: "#007AFF",
     },
     saveButtonText: {
       fontSize: 17,
       fontWeight: "600" as const,
-      color: colors.textInverse,
+      color: "#FFF",
+    },
+    deleteButton: {
+      backgroundColor: "#FF3B30",
+      // marginTop: 12,
+    },
+    deleteButtonText: {
+      fontSize: 17,
+      fontWeight: "600" as const,
+      color: "#FFF",
     },
     buttonDisabled: {
       opacity: 0.6,
     },
     error: {
       fontSize: 14,
-      color: colors.danger,
+      color: "#FF3B30",
     },
   });

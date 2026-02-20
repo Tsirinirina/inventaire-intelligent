@@ -33,17 +33,16 @@ export const [AccessoryProvider, useAccessory] = createContextHook(() => {
    * Update accessory mutation
    */
   const updateAccessoryQuery = useUpdateAccessoryQuery(queryClient);
-  const updateAccessoryState = useMutationState(
-    "update",
-    ACCESSORY_QUERY_KEY,
-    updateAccessoryQuery,
-  );
+  const { updateAccessory, accessoryUpdating, accessoryUpdatingError } =
+    useMutationState("update", ACCESSORY_QUERY_KEY, updateAccessoryQuery);
 
   return {
     ...getAllAccessoriesState,
     addAccessory,
     accessoryAdding,
     accessoryAddingError,
-    ...updateAccessoryState,
+    updateAccessory,
+    accessoryUpdating,
+    accessoryUpdatingError,
   };
 });

@@ -1,5 +1,4 @@
 import { PRODUCT_BRANDS } from "@/core/constants/brands";
-import { PRODUCT_CATEGORIES } from "@/core/constants/categories";
 import { useProduct } from "@/core/contexts/ProductContext";
 import { NewProduct } from "@/core/entity/product.entity";
 import {
@@ -129,8 +128,8 @@ export default function AddProductScreen() {
         ...data,
         name: data.name.trim(),
         brand: data.brand.trim(),
-        category: data.category as any,
-        basePrice: Number(data.price),
+        category: "smartphone",
+        basePrice: Number(data.basePrice),
         quantity: Number(data.quantity),
         description: data.description?.trim() as any,
         createdAt: new Date().toISOString(),
@@ -262,7 +261,7 @@ export default function AddProductScreen() {
             )}
           </View>
 
-          <View style={styles.inputGroup}>
+          {/* <View style={styles.inputGroup}>
             <Controller
               control={control}
               name="category"
@@ -285,15 +284,15 @@ export default function AddProductScreen() {
             {errors.category && (
               <Text style={styles.error}>{errors.category.message}</Text>
             )}
-          </View>
+          </View> */}
 
           <View style={styles.row}>
             <Controller
               control={control}
-              name="price"
+              name="basePrice"
               render={({ field }) => (
                 <View style={[styles.inputGroup, styles.flex1]}>
-                  <Text style={styles.label}>Prix *</Text>
+                  <Text style={styles.label}>Prix de base *</Text>
                   <TextInput
                     value={field.value}
                     onChangeText={field.onChange}
@@ -303,8 +302,8 @@ export default function AddProductScreen() {
                     placeholder="0"
                     placeholderTextColor={colors.inputPlaceholder}
                   />
-                  {errors.price && (
-                    <Text style={styles.error}>{errors.price.message}</Text>
+                  {errors.basePrice && (
+                    <Text style={styles.error}>{errors.basePrice.message}</Text>
                   )}
                 </View>
               )}
@@ -355,7 +354,7 @@ export default function AddProductScreen() {
         </View>
       </ScrollView>
 
-      <View style={[styles.footer, { paddingBottom: 20 + insets.bottom }]}>
+      <View style={[styles.footer]}>
         <Pressable
           style={[
             styles.button,
@@ -385,7 +384,7 @@ const createStyles = (colors: ThemeColors) =>
       flex: 1,
       backgroundColor: colors.background,
     },
-    scrollContent: { paddingBottom: 220 },
+    scrollContent: {},
     cameraContainer: {
       flex: 1,
       backgroundColor: "#000",
@@ -526,10 +525,6 @@ const createStyles = (colors: ThemeColors) =>
       flex: 1,
     },
     footer: {
-      // position: "absolute" as const,
-      // bottom: 0,
-      // left: 0,
-      // right: 0,
       padding: 20,
       backgroundColor: colors.surface,
       borderTopWidth: 1,

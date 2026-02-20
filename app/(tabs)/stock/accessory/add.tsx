@@ -1,8 +1,14 @@
 import { ACCESSORY_CATEGORIES } from "@/core/constants/categories";
 import { useAccessory } from "@/core/contexts/AccessoryContext";
 import { NewAccessory } from "@/core/entity/accessory.entity";
+import {
+  AccessoryForm,
+  accessoryFormDefaultValues,
+  accessorySchema,
+} from "@/core/forms/accessory.form";
 import { ThemeColors } from "@/theme/colors";
 import { useTheme } from "@/theme/ThemeProvider";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { CameraView, useCameraPermissions } from "expo-camera";
 import { Directory, File, Paths } from "expo-file-system";
 import { Image } from "expo-image";
@@ -10,6 +16,7 @@ import * as ImagePicker from "expo-image-picker";
 import { useRouter } from "expo-router";
 import { Camera, Check, Image as ImageIcon, X } from "lucide-react-native";
 import { useMemo, useRef, useState } from "react";
+import { Controller, useForm } from "react-hook-form";
 import {
   ActivityIndicator,
   Alert,
@@ -22,6 +29,8 @@ import {
   TextInput,
   View,
 } from "react-native";
+import DropdownSelect from "react-native-input-select";
+import { capitalizeWords } from "../../../../core/utils/capitalize.utils";
 
 export default function AddAccessoryScreen() {
   const router = useRouter();
@@ -30,16 +39,22 @@ export default function AddAccessoryScreen() {
 
   const { addAccessory, accessoryAdding, accessoryAddingError } =
     useAccessory();
-  const [name, setName] = useState("");
-  const [price, setPrice] = useState("");
-  const [category, setCategory] = useState("");
-  const [description, setDescription] = useState("");
-  const [quantity, setQuantity] = useState("");
+
   const [imageUri, setImageUri] = useState<string | undefined>(undefined);
   const [showCamera, setShowCamera] = useState(false);
-  const [showBrandPicker, setShowBrandPicker] = useState(false);
+
   const [permission, requestPermission] = useCameraPermissions();
   const cameraRef = useRef<CameraView>(null);
+
+  const {
+    control,
+    handleSubmit,
+    setValue,
+    formState: { errors },
+  } = useForm<AccessoryForm>({
+    resolver: zodResolver(accessorySchema),
+    defaultValues: accessoryFormDefaultValues,
+  });
 
   const handleTakePhoto = async () => {
     if (!permission?.granted) {
@@ -108,36 +123,14 @@ export default function AddAccessoryScreen() {
     }
   };
 
-  const handleSave = async () => {
-    if (!name.trim()) {
-      Alert.alert(
-        "Erreur de validation",
-        "Veuillez saisir le nom de l'accessoire",
-      );
-      return;
-    }
-
-    if (!category.trim()) {
-      Alert.alert("Erreur de validation", "Veuillez choisie un catégorie");
-      return;
-    }
-
-    if (!price.trim() || isNaN(Number(price)) || Number(price) <= 0) {
-      Alert.alert("Validation Error", "Veuillez saisir un prix valide");
-      return;
-    }
-    if (!quantity.trim() || isNaN(Number(quantity)) || Number(quantity) < 0) {
-      Alert.alert("Validation Error", "Veuillez saisir une quantité valide");
-      return;
-    }
-
+  const onSubmit = async (data: AccessoryForm) => {
     try {
       const newAccessory: NewAccessory = {
-        name: name.trim(),
-        basePrice: Number(price),
-        category: category.trim() as any,
-        description: description.trim(),
-        quantity: Number(quantity),
+        name: data.name.trim(),
+        basePrice: Number(data.basePrice),
+        category: data.category.trim() as any,
+        description: data.description,
+        quantity: Number(data.quantity),
         createdAt: new Date().toISOString(),
         imageUri,
         stockUpdatedAt: new Date().toISOString(),
@@ -223,86 +216,117 @@ export default function AddAccessoryScreen() {
         </View>
 
         <View style={styles.form}>
-          <View style={styles.inputGroup}>
-            <Text style={styles.label}>Nom du produit *</Text>
-            <TextInput
-              style={styles.input}
-              value={name}
-              onChangeText={setName}
-              placeholder="e.x., Ecouteur bleutooth JBL"
-              placeholderTextColor={colors.inputPlaceholder}
-            />
-          </View>
+          <Controller
+            control={control}
+            name="name"
+            render={({ field }) => (
+              <View style={styles.inputGroup}>
+                <Text style={styles.label}>Nom de l&apos;accessoire *</Text>
+                <TextInput
+                  value={field.value}
+                  onChangeText={field.onChange}
+                  onBlur={field.onBlur}
+                  style={styles.input}
+                  placeholder="Ex: Chargeur Type C 33W"
+                  placeholderTextColor={colors.inputPlaceholder}
+                />
+                {errors.name && (
+                  <Text style={styles.error}>{errors.name.message}</Text>
+                )}
+              </View>
+            )}
+          />
 
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Catégorie *</Text>
-            <Pressable
-              style={styles.input}
-              onPress={() => setShowBrandPicker(!showBrandPicker)}
-            >
-              <Text
-                style={category ? styles.inputText : styles.inputPlaceholder}
-              >
-                {category || "Sélectionnez une categorie"}
-              </Text>
-            </Pressable>
-            {showBrandPicker && (
-              <ScrollView style={styles.brandPicker} nestedScrollEnabled>
-                {ACCESSORY_CATEGORIES.map((cat) => (
-                  <Pressable
-                    key={cat}
-                    style={styles.brandOption}
-                    onPress={() => {
-                      setCategory(cat);
-                      setShowBrandPicker(false);
-                    }}
-                  >
-                    <Text style={styles.brandOptionText}>{cat}</Text>
-                  </Pressable>
-                ))}
-              </ScrollView>
+            <Controller
+              control={control}
+              name="category"
+              render={({ field, fieldState }) => (
+                <DropdownSelect
+                  label="Catégorie *"
+                  labelStyle={styles.label}
+                  dropdownStyle={styles.inputSelect}
+                  placeholderStyle={styles.inputPlaceholder}
+                  placeholder="Sélectionnez une catégorie"
+                  selectedValue={field.value}
+                  onValueChange={(value) => setValue("category", value as any)}
+                  options={ACCESSORY_CATEGORIES.map((c) => ({
+                    label: capitalizeWords(c),
+                    value: c,
+                  }))}
+                />
+              )}
+            />
+            {errors.category && (
+              <Text style={styles.error}>{errors.category.message}</Text>
             )}
           </View>
 
           <View style={styles.row}>
-            <View style={[styles.inputGroup, styles.flex1]}>
-              <Text style={styles.label}>Prix (Ariary) *</Text>
-              <TextInput
-                style={styles.input}
-                value={price}
-                onChangeText={setPrice}
-                placeholder="000"
-                placeholderTextColor={colors.inputPlaceholder}
-                keyboardType="decimal-pad"
-              />
-            </View>
+            <Controller
+              control={control}
+              name="basePrice"
+              render={({ field }) => (
+                <View style={[styles.inputGroup, styles.flex1]}>
+                  <Text style={styles.label}>Prix de base *</Text>
+                  <TextInput
+                    value={field.value}
+                    onChangeText={field.onChange}
+                    onBlur={field.onBlur}
+                    style={styles.input}
+                    keyboardType="decimal-pad"
+                    placeholder="0"
+                    placeholderTextColor={colors.inputPlaceholder}
+                  />
+                  {errors.basePrice && (
+                    <Text style={styles.error}>{errors.basePrice.message}</Text>
+                  )}
+                </View>
+              )}
+            />
 
-            <View style={[styles.inputGroup, styles.flex1]}>
-              <Text style={styles.label}>Quantité *</Text>
-              <TextInput
-                style={styles.input}
-                value={quantity}
-                onChangeText={setQuantity}
-                placeholder="0"
-                placeholderTextColor={colors.inputPlaceholder}
-                keyboardType="number-pad"
-              />
-            </View>
-          </View>
-
-          <View style={styles.inputGroup}>
-            <Text style={styles.label}>Description</Text>
-            <TextInput
-              style={[styles.input, styles.textArea]}
-              value={description}
-              onChangeText={setDescription}
-              placeholder="Couleur, motifs, états"
-              placeholderTextColor={colors.inputPlaceholder}
-              multiline
-              numberOfLines={6}
-              textAlignVertical="top"
+            <Controller
+              control={control}
+              name="quantity"
+              render={({ field }) => (
+                <View style={[styles.inputGroup, styles.flex1]}>
+                  <Text style={styles.label}>Quantité *</Text>
+                  <TextInput
+                    value={field.value}
+                    onChangeText={field.onChange}
+                    onBlur={field.onBlur}
+                    style={styles.input}
+                    keyboardType="number-pad"
+                    placeholder="0"
+                    placeholderTextColor={colors.inputPlaceholder}
+                  />
+                  {errors.quantity && (
+                    <Text style={styles.error}>{errors.quantity.message}</Text>
+                  )}
+                </View>
+              )}
             />
           </View>
+
+          <Controller
+            control={control}
+            name="description"
+            render={({ field }) => (
+              <View style={styles.inputGroup}>
+                <Text style={styles.label}>Description</Text>
+                <TextInput
+                  value={field.value}
+                  onChangeText={field.onChange}
+                  onBlur={field.onBlur}
+                  style={[styles.input, styles.textArea]}
+                  placeholder="Description"
+                  placeholderTextColor={colors.inputPlaceholder}
+                  multiline
+                  numberOfLines={5}
+                />
+              </View>
+            )}
+          />
         </View>
       </ScrollView>
 
@@ -313,7 +337,7 @@ export default function AddAccessoryScreen() {
             styles.saveButton,
             accessoryAdding && styles.buttonDisabled,
           ]}
-          onPress={handleSave}
+          onPress={handleSubmit(onSubmit)}
           disabled={accessoryAdding}
         >
           {accessoryAdding ? (
@@ -484,6 +508,16 @@ const createStyles = (colors: ThemeColors) =>
       borderWidth: 1,
       borderColor: colors.inputBorder,
     },
+    inputSelect: {
+      backgroundColor: colors.inputBackground,
+      borderRadius: 10,
+      paddingHorizontal: 16,
+      paddingVertical: 14,
+      fontSize: 16,
+      color: colors.inputText,
+      borderWidth: 1,
+      borderColor: colors.inputBorder,
+    },
     brandOption: {
       paddingHorizontal: 16,
       paddingVertical: 14,
@@ -522,5 +556,9 @@ const createStyles = (colors: ThemeColors) =>
     },
     buttonDisabled: {
       opacity: 0.6,
+    },
+    error: {
+      fontSize: 14,
+      color: colors.danger,
     },
   });

@@ -61,7 +61,7 @@ export default function EditProductScreen() {
       setProduct(foundProduct);
       setValue("brand", foundProduct.brand);
       setValue("name", foundProduct.name);
-      setValue("price", foundProduct.brand.toString());
+      setValue("basePrice", foundProduct.brand.toString());
       setValue("category", foundProduct.category);
       setValue("quantity", foundProduct.quantity.toString());
       setImageUri(foundProduct.imageUri);
@@ -141,8 +141,8 @@ export default function EditProductScreen() {
         ...(product as any),
         name: data.name.trim(),
         brand: data.brand.trim(),
-        category: data.category as any,
-        price: Number(data.price),
+        category: data.category ?? null,
+        price: Number(data.basePrice),
         quantity: Number(data.quantity),
         description: data.description?.trim() as any,
         dateAdded: new Date().toISOString(),
@@ -336,10 +336,10 @@ export default function EditProductScreen() {
           <View style={styles.row}>
             <Controller
               control={control}
-              name="price"
+              name="basePrice"
               render={({ field }) => (
                 <View style={[styles.inputGroup, styles.flex1]}>
-                  <Text style={styles.label}>Prix *</Text>
+                  <Text style={styles.label}>Prix de base *</Text>
                   <TextInput
                     value={field.value}
                     onChangeText={field.onChange}
@@ -349,8 +349,8 @@ export default function EditProductScreen() {
                     placeholder="0"
                     placeholderTextColor="#999"
                   />
-                  {errors.price && (
-                    <Text style={styles.error}>{errors.price.message}</Text>
+                  {errors.basePrice && (
+                    <Text style={styles.error}>{errors.basePrice.message}</Text>
                   )}
                 </View>
               )}
