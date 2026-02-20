@@ -1,5 +1,5 @@
+import MaskedView from "@react-native-masked-view/masked-view";
 import { CameraView, useCameraPermissions } from "expo-camera";
-import ExpoMlkitOcr from "expo-mlkit-ocr";
 import React, { useRef, useState } from "react";
 import {
   ActivityIndicator,
@@ -9,6 +9,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import Tesseract from "tesseract.js";
 
 interface NumberScannerProps {
   onScan: (value: string) => void;
@@ -50,10 +51,10 @@ export default function NumberScanner({ onScan, onClose }: NumberScannerProps) {
           skipProcessing: true,
         });
 
-        const result = await ExpoMlkitOcr.recognizeText(photo.uri);
+        const result = await Tesseract.recognize(photo.uri);
 
-        if (result.text) {
-          const numbersOnly = result.text.replace(/[^0-9]/g, "");
+        if (result.data.text) {
+          const numbersOnly = result.data.text.replace(/[^0-9]/g, "");
 
           if (numbersOnly) {
             onScan(numbersOnly);
@@ -70,30 +71,36 @@ export default function NumberScanner({ onScan, onClose }: NumberScannerProps) {
   return (
     <Modal animationType="slide">
       <View style={styles.container}>
-        <CameraView style={styles.camera} ref={cameraRef}>
-          <View style={styles.overlay}>
-            <TouchableOpacity style={styles.closeBtn} onPress={onClose}>
-              <Text style={styles.closeText}>X</Text>
-            </TouchableOpacity>
+        <MaskedView
+          maskElement={
+            <Text style={{ color: "black", fontSize: 40 }}>Hello</Text>
+          }
+        >
+          <CameraView style={styles.camera} ref={cameraRef}>
+            <View style={styles.overlay}>
+              <TouchableOpacity style={styles.closeBtn} onPress={onClose}>
+                <Text style={styles.closeText}>X</Text>
+              </TouchableOpacity>
 
-            <View style={styles.resultBox}>
-              <Text style={styles.resultText}>
-                {isProcessing ? "Analyse..." : "Ciblez les chiffres"}
-              </Text>
+              <View style={styles.resultBox}>
+                <Text style={styles.resultText}>
+                  {isProcessing ? "Analyse..." : "Ciblez les chiffres"}
+                </Text>
+              </View>
+
+              <TouchableOpacity
+                style={[styles.scanBtn, isProcessing && { opacity: 0.5 }]}
+                onPress={handleCapture}
+                disabled={isProcessing}
+              >
+                <ActivityIndicator animating={isProcessing} color="#000" />
+                {!isProcessing && (
+                  <Text style={styles.buttonTextBlack}>SCANNER</Text>
+                )}
+              </TouchableOpacity>
             </View>
-
-            <TouchableOpacity
-              style={[styles.scanBtn, isProcessing && { opacity: 0.5 }]}
-              onPress={handleCapture}
-              disabled={isProcessing}
-            >
-              <ActivityIndicator animating={isProcessing} color="#000" />
-              {!isProcessing && (
-                <Text style={styles.buttonTextBlack}>SCANNER</Text>
-              )}
-            </TouchableOpacity>
-          </View>
-        </CameraView>
+          </CameraView>
+        </MaskedView>
       </View>
     </Modal>
   );
