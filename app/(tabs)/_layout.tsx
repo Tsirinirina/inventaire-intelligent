@@ -2,9 +2,8 @@ import { useTheme } from "@/theme/ThemeProvider";
 import { Tabs } from "expo-router";
 import {
   BarChart3,
-  Package,
   ShoppingBag,
-  ShoppingCart,
+  ShoppingCart
 } from "lucide-react-native";
 import React from "react";
 import { Platform } from "react-native";
@@ -57,13 +56,7 @@ export default function TabLayout() {
           tabBarIcon: ({ color }) => <ShoppingBag color={color} size={24} />,
         }}
       />
-      <Tabs.Screen
-        name="accessory"
-        options={{
-          title: "Accessoires",
-          tabBarIcon: ({ color }) => <Package color={color} size={24} />,
-        }}
-      />
+
       <Tabs.Screen
         name="sales"
         options={{
