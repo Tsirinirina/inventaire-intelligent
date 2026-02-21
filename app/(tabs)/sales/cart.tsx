@@ -1,5 +1,5 @@
-import { Sale } from "@/core/entity/sale.entity";
-import React, { useState } from "react";
+import { useCartStore } from "@/core/store/cart.store";
+import React from "react";
 import {
   FlatList,
   StyleSheet,
@@ -17,13 +17,8 @@ const COLORS = {
   muted: "#94A3B8",
 };
 
-export default function CartScreen({ route }: any) {
-  const [items] = useState<Sale[]>([route.params.sale]);
-
-  const total = items.reduce(
-    (sum, item) => sum + item.quantity * item.unitPrice,
-    0,
-  );
+export default function CartScreen() {
+  const { items, total, increaseQuantity, decreaseQuantity } = useCartStore();
 
   return (
     <View style={styles.container}>
@@ -35,7 +30,7 @@ export default function CartScreen({ route }: any) {
         renderItem={({ item }) => (
           <View style={styles.card}>
             <Text style={styles.text}>Quantité: {item.quantity}</Text>
-            <Text style={styles.muted}>Prix: {item.unitPrice} Ar</Text>
+            <Text style={styles.muted}>Prix: {item.basePrice} Ar</Text>
             {item.imei && <Text style={styles.muted}>IMEI: {item.imei}</Text>}
           </View>
         )}
@@ -45,7 +40,7 @@ export default function CartScreen({ route }: any) {
         <Text style={styles.total}>Total: {total.toLocaleString()} Ar</Text>
 
         <TouchableOpacity style={styles.confirmButton}>
-          <Text style={styles.confirmText}>Confirmer la vente</Text>
+          <Text style={styles.confirmText}>Ajouter</Text>
         </TouchableOpacity>
       </View>
     </View>

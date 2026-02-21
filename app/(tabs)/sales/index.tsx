@@ -2,9 +2,9 @@ import { useAccessory } from "@/core/contexts/AccessoryContext";
 import { useProduct } from "@/core/contexts/ProductContext";
 import { useSale } from "@/core/contexts/SaleContext";
 import { SellableItem } from "@/core/entity/sale.entity";
+import { useCartStore } from "@/core/store/cart.store";
 import { capitalizeWords } from "@/core/utils/capitalize.utils";
 import { useTheme } from "@/theme/ThemeProvider";
-import { useNavigation } from "@react-navigation/native";
 import { ShoppingCart } from "lucide-react-native";
 import React, { useMemo } from "react";
 import {
@@ -36,9 +36,9 @@ export default function SaleScreen() {
     accessorysRefetch,
   } = useAccessory();
 
-  const sellableItems: SellableItem[] = useMemo(() => {
-    console.log("Product =", products);
+  const { addItem } = useCartStore();
 
+  const sellableItems: SellableItem[] = useMemo(() => {
     const mappedProducts: SellableItem[] = products.map((product) => ({
       id: product.id,
       type: "product",
@@ -63,9 +63,6 @@ export default function SaleScreen() {
     return [...mappedProducts, ...mappedAccessories];
   }, [products, accessories]);
 
-  console.log("Selleble items =", sellableItems);
-
-  const navigation = useNavigation<any>();
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
 
@@ -97,10 +94,7 @@ export default function SaleScreen() {
         <Text style={styles.price}>{item.basePrice.toLocaleString()} Ar</Text>
       </View>
 
-      <TouchableOpacity
-        style={styles.addButton}
-        onPress={() => navigation.navigate("AddToCart", { item })}
-      >
+      <TouchableOpacity style={styles.addButton} onPress={() => addItem(item)}>
         <Text style={styles.addText}>
           <ShoppingCart size={24} color={colors.textInverse} />
         </Text>
