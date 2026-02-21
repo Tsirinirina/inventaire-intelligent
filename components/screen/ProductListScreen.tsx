@@ -1,7 +1,6 @@
 import { PRODUCT_BRANDS } from "@/core/constants/brands";
 import { useProduct } from "@/core/contexts/ProductContext";
 import { Product } from "@/core/entity/product.entity";
-import { PRODUCT_MOCK } from "@/core/mock/productMock";
 import { formatAriary } from "@/core/utils/currency.utils";
 import { useTheme } from "@/theme/ThemeProvider";
 import { Image } from "expo-image";
@@ -30,12 +29,6 @@ export default function ProductsListScreen() {
     productsRefetch,
     addProduct,
   } = useProduct();
-
-  const handleCreateMock = () => {
-    for (const product of PRODUCT_MOCK) {
-      addProduct(product);
-    }
-  };
 
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [selectedBrand, setSelectedBrand] = useState<string | null>(null);
