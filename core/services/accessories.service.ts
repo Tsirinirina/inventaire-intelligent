@@ -63,3 +63,8 @@ export function updateAccessory(db: SQLiteDatabase, dto: Accessory): boolean {
   );
   return true;
 }
+
+export function deleteAccessory(db: SQLiteDatabase, id: number): boolean {
+  db.runSync(`DELETE FROM accessories WHERE id = ?`, [id]);
+  return true;
+}

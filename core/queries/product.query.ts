@@ -7,6 +7,7 @@ import {
 } from "../entity/product.entity";
 import {
   addProduct,
+  deleteProduct,
   getAllProduct,
   updateProduct,
 } from "../services/product.service";
@@ -42,6 +43,20 @@ export function useUpdateProductQuery(queryClient: QueryClient) {
   return useMutation({
     mutationFn: async (dto: Product) => {
       return updateProduct(db, dto);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: [PRODUCT_QUERY_KEY],
+      });
+    },
+  });
+}
+
+export function useDeleteProductQuery(queryClient: QueryClient) {
+  const db = getDatabase();
+  return useMutation({
+    mutationFn: async (id: number) => {
+      return deleteProduct(db, id);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({

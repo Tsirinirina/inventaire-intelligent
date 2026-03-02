@@ -31,6 +31,7 @@ export default function AccessoriesScreen() {
     accessorys: accessories,
     accessorysLoading: accessoriessLoading,
     accessorysRefetch,
+    deleteAccessory,
   } = useAccessory();
 
   const [searchQuery, setSearchQuery] = useState("");
@@ -62,7 +63,7 @@ export default function AccessoriesScreen() {
           style: "destructive",
           onPress: async () => {
             try {
-              // await deleteAccessory(id);
+              await deleteAccessory(id);
             } catch (error) {
               Alert.alert("Error", "Échec de la suppression de l'accessoire");
               console.error("Erreur de suppression:", error);

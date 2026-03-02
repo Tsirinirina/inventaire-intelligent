@@ -5,6 +5,7 @@ import { useMutationState } from "../hooks/mutationState";
 import { useQueryState } from "../hooks/queryState";
 import {
   useAddAccessoryQuery,
+  useDeleteAccessoryQuery,
   useGetAllAccessoryQuery,
   useUpdateAccessoryQuery,
 } from "../queries/accessory.query";
@@ -36,6 +37,13 @@ export const [AccessoryProvider, useAccessory] = createContextHook(() => {
   const { updateAccessory, accessoryUpdating, accessoryUpdatingError } =
     useMutationState("update", ACCESSORY_QUERY_KEY, updateAccessoryQuery);
 
+  /**
+   * Delete accessory mutation
+   */
+  const deleteAccessoryQuery = useDeleteAccessoryQuery(queryClient);
+  const { deleteAccessory, accessoryDeleting, accessoryDeletingError } =
+    useMutationState("delete", ACCESSORY_QUERY_KEY, deleteAccessoryQuery);
+
   return {
     ...getAllAccessoriesState,
     addAccessory,
@@ -44,5 +52,8 @@ export const [AccessoryProvider, useAccessory] = createContextHook(() => {
     updateAccessory,
     accessoryUpdating,
     accessoryUpdatingError,
+    deleteAccessory,
+    accessoryDeleting,
+    accessoryDeletingError,
   };
 });

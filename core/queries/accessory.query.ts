@@ -7,6 +7,7 @@ import {
 } from "../entity/accessory.entity";
 import {
   addAccessory,
+  deleteAccessory,
   getAllAccessory,
   updateAccessory,
 } from "../services/accessories.service";
@@ -48,6 +49,23 @@ export function useUpdateAccessoryQuery(queryClient: QueryClient) {
   return useMutation({
     mutationFn: async (dto: Accessory) => {
       return updateAccessory(db, dto);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: [ACCESSORY_QUERY_KEY],
+      });
+    },
+  });
+}
+
+/**
+ * Delete Accessory Mutation
+ */
+export function useDeleteAccessoryQuery(queryClient: QueryClient) {
+  const db = getDatabase();
+  return useMutation({
+    mutationFn: async (id: number) => {
+      return deleteAccessory(db, id);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({

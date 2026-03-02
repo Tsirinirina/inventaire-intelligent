@@ -46,7 +46,7 @@ export function addProduct(db: SQLiteDatabase, dto: NewProduct): number {
  */
 export function updateProduct(db: SQLiteDatabase, dto: Product): boolean {
   db!.runSync(
-    `UPDATE products 
+    `UPDATE products
          SET name = ?, brand = ?, category = ?, description = ?, basePrice = ?, quantity = ?, imageUri = ?, createdAt = ?, stockUpdatedAt = ?
          WHERE id = ?`,
     [
@@ -62,5 +62,10 @@ export function updateProduct(db: SQLiteDatabase, dto: Product): boolean {
       dto.id,
     ],
   );
+  return true;
+}
+
+export function deleteProduct(db: SQLiteDatabase, id: number): boolean {
+  db.runSync(`DELETE FROM products WHERE id = ?`, [id]);
   return true;
 }

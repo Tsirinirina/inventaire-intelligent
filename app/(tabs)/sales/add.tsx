@@ -1,26 +1,23 @@
+import { useAuth } from "@/core/contexts/AuthContext";
 import { SellableItem } from "@/core/entity/sale.entity";
-import { useNavigation, useRoute } from "@react-navigation/native";
-import React, { useState } from "react";
+import { useTheme } from "@/theme/ThemeProvider";
+import { useLocalSearchParams, useRouter } from "expo-router";
+import React, { useMemo, useState } from "react";
 import {
   ScrollView,
   StyleSheet,
   Text,
   TextInput,
-  TouchableOpacity
+  TouchableOpacity,
 } from "react-native";
 
-const COLORS = {
-  background: "#0F172A",
-  card: "#1E293B",
-  primary: "#22C55E",
-  text: "#F8FAFC",
-  muted: "#94A3B8",
-};
-
 export default function AddToCartScreen() {
-  const route = useRoute<any>();
-  const navigation = useNavigation<any>();
-  const { item } = route.params as { item: SellableItem };
+  const router = useRouter();
+  const { item: itemStr } = useLocalSearchParams<{ item: string }>();
+  const item: SellableItem = JSON.parse(itemStr);
+  const { currentSeller } = useAuth();
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
 
   const [quantity, setQuantity] = useState("1");
   const [unitPrice, setUnitPrice] = useState(item.basePrice.toString());
@@ -30,19 +27,22 @@ export default function AddToCartScreen() {
   const [rom, setRom] = useState("");
 
   const handleAdd = () => {
-    navigation.navigate("Cart", {
-      sale: {
-        sellerId: 1,
-        productId: item.type === "product" ? item.id : undefined,
-        accessoryId: item.type === "accessory" ? item.id : undefined,
-        quantity: Number(quantity),
-        unitPrice: Number(unitPrice),
-        imei,
-        color,
-        ram: ram ? Number(ram) : undefined,
-        rom: rom ? Number(rom) : undefined,
-        createdAt: new Date().toISOString(),
-      },
+    const sale = {
+      sellerId: currentSeller?.id ?? 1,
+      productId: item.type === "product" ? item.id : undefined,
+      accessoryId: item.type === "accessory" ? item.id : undefined,
+      quantity: Number(quantity),
+      unitPrice: Number(unitPrice),
+      imei: imei || undefined,
+      color: color || undefined,
+      ram: ram ? Number(ram) : undefined,
+      rom: rom ? Number(rom) : undefined,
+      createdAt: new Date().toISOString(),
+    };
+
+    router.push({
+      pathname: "/(tabs)/sales/cart",
+      params: { sale: JSON.stringify(sale) },
     });
   };
 
@@ -53,7 +53,7 @@ export default function AddToCartScreen() {
       <TextInput
         style={styles.input}
         placeholder="Quantité"
-        placeholderTextColor={COLORS.muted}
+        placeholderTextColor={colors.textMuted}
         keyboardType="numeric"
         value={quantity}
         onChangeText={setQuantity}
@@ -62,7 +62,7 @@ export default function AddToCartScreen() {
       <TextInput
         style={styles.input}
         placeholder="Prix unitaire"
-        placeholderTextColor={COLORS.muted}
+        placeholderTextColor={colors.textMuted}
         keyboardType="numeric"
         value={unitPrice}
         onChangeText={setUnitPrice}
@@ -72,7 +72,7 @@ export default function AddToCartScreen() {
         <TextInput
           style={styles.input}
           placeholder="IMEI"
-          placeholderTextColor={COLORS.muted}
+          placeholderTextColor={colors.textMuted}
           value={imei}
           onChangeText={setImei}
         />
@@ -81,7 +81,7 @@ export default function AddToCartScreen() {
       <TextInput
         style={styles.input}
         placeholder="Couleur"
-        placeholderTextColor={COLORS.muted}
+        placeholderTextColor={colors.textMuted}
         value={color}
         onChangeText={setColor}
       />
@@ -90,7 +90,7 @@ export default function AddToCartScreen() {
         style={styles.input}
         placeholder="RAM"
         keyboardType="numeric"
-        placeholderTextColor={COLORS.muted}
+        placeholderTextColor={colors.textMuted}
         value={ram}
         onChangeText={setRam}
       />
@@ -99,7 +99,7 @@ export default function AddToCartScreen() {
         style={styles.input}
         placeholder="ROM"
         keyboardType="numeric"
-        placeholderTextColor={COLORS.muted}
+        placeholderTextColor={colors.textMuted}
         value={rom}
         onChangeText={setRom}
       />
@@ -111,35 +111,36 @@ export default function AddToCartScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: COLORS.background,
-    padding: 16,
-  },
-  title: {
-    color: COLORS.text,
-    fontSize: 22,
-    fontWeight: "bold",
-    marginBottom: 20,
-  },
-  input: {
-    backgroundColor: COLORS.card,
-    padding: 14,
-    borderRadius: 14,
-    color: COLORS.text,
-    marginBottom: 14,
-  },
-  button: {
-    backgroundColor: COLORS.primary,
-    padding: 16,
-    borderRadius: 16,
-    marginTop: 10,
-  },
-  buttonText: {
-    color: "#fff",
-    textAlign: "center",
-    fontWeight: "bold",
-    fontSize: 16,
-  },
-});
+const createStyles = (colors: ReturnType<typeof useTheme>["colors"]) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: colors.background,
+      padding: 16,
+    },
+    title: {
+      color: colors.text,
+      fontSize: 22,
+      fontWeight: "bold",
+      marginBottom: 20,
+    },
+    input: {
+      backgroundColor: colors.surfaceElevated,
+      padding: 14,
+      borderRadius: 14,
+      color: colors.text,
+      marginBottom: 14,
+    },
+    button: {
+      backgroundColor: colors.primary,
+      padding: 16,
+      borderRadius: 16,
+      marginTop: 10,
+    },
+    buttonText: {
+      color: colors.textInverse,
+      textAlign: "center",
+      fontWeight: "bold",
+      fontSize: 16,
+    },
+  });

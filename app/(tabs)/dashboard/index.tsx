@@ -1,499 +1,347 @@
-import StatCard from "@/components/cards/StatCard";
-import AppText from "@/components/ui/AppText";
-import ScreenContainer from "@/components/ui/ScreenContainer";
-import Title from "@/components/ui/Title";
+import { useAccessory } from "@/core/contexts/AccessoryContext";
+import { useInventory } from "@/core/contexts/InventoryContext";
+import { useProduct } from "@/core/contexts/ProductContext";
+import { useSale } from "@/core/contexts/SaleContext";
+import { formatAriary } from "@/core/utils/currency.utils";
+import { useRouter } from "expo-router";
 import {
-  monthlyExpenses,
-  recentTransactions,
-  spendingCategories,
-  Transaction,
-} from "@/core/mock/dashboard";
-import { useTheme } from "@/theme/ThemeProvider";
-import { LinearGradient } from "expo-linear-gradient";
-import {
-  ArrowDownLeft,
-  ArrowUpRight,
-  Bell,
-  Briefcase,
-  Car,
-  Eye,
-  EyeOff,
-  Music,
-  Palette,
-  ShoppingBag,
+  DollarSign,
+  LucidePiggyBank,
+  Package,
   ShoppingCart,
+  TabletSmartphone,
   TrendingUp,
-  Tv,
-  Wallet,
 } from "lucide-react-native";
-import React, { useCallback, useEffect, useRef, useState } from "react";
-import { Animated, StyleSheet, TouchableOpacity, View } from "react-native";
-
-const iconMap: Record<
-  string,
-  React.ComponentType<{ size: number; color: string }>
-> = {
-  laptop: ShoppingBag,
-  briefcase: Briefcase,
-  tv: Tv,
-  car: Car,
-  palette: Palette,
-  music: Music,
-  "shopping-cart": ShoppingCart,
-  "trending-up": TrendingUp,
-};
+import {
+  ActivityIndicator,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 
 export default function DashboardScreen() {
-  const { colors } = useTheme();
-  const [balanceVisible, setBalanceVisible] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-  const balanceAnim = useRef(new Animated.Value(0)).current;
-  const headerAnim = useRef(new Animated.Value(0)).current;
+  const router = useRouter();
+  const { stats } = useInventory();
+  const { productsLoading } = useProduct();
+  const { accessorysLoading } = useAccessory();
+  const { salesLoading } = useSale();
 
-  useEffect(() => {
-    Animated.stagger(150, [
-      Animated.spring(headerAnim, {
-        toValue: 1,
-        useNativeDriver: true,
-        friction: 8,
-      }),
-      Animated.spring(balanceAnim, {
-        toValue: 1,
-        useNativeDriver: true,
-        friction: 8,
-      }),
-    ]).start();
-  }, [headerAnim, balanceAnim]);
-
-  const onRefresh = useCallback(() => {
-    setRefreshing(true);
-    setTimeout(() => setRefreshing(false), 1500);
-  }, []);
-
-  const renderTransactionItem = useCallback(
-    ({ item }: { item: Transaction }) => {
-      const IconComp = iconMap[item.icon] ?? ShoppingBag;
-      const isIncome = item.type === "income";
-      return (
-        <TouchableOpacity
-          activeOpacity={0.7}
-          style={[styles.txRow, { borderBottomColor: colors.border }]}
-        >
-          <View
-            style={[
-              styles.txIcon,
-              {
-                backgroundColor: isIncome
-                  ? colors.success + "15"
-                  : colors.accent + "15",
-              },
-            ]}
-          >
-            <IconComp
-              size={20}
-              color={isIncome ? colors.success : colors.accent}
-            />
-          </View>
-          <View style={styles.txInfo}>
-            <AppText weight="600">{item.title}</AppText>
-            <AppText variant="small">{item.subtitle}</AppText>
-          </View>
-          <View style={styles.txAmount}>
-            <AppText
-              weight="600"
-              color={isIncome ? colors.success : colors.text}
-            >
-              {item.amount}
-            </AppText>
-            <AppText variant="small" align="right">
-              {item.date}
-            </AppText>
-          </View>
-        </TouchableOpacity>
-      );
-    },
-    [colors],
-  );
+  if (productsLoading || salesLoading || accessorysLoading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#007AFF" />
+      </View>
+    );
+  }
 
   return (
-    <ScreenContainer safeTop refreshing={refreshing} onRefresh={onRefresh}>
-      <Animated.View
-        style={[
-          styles.header,
-          {
-            opacity: headerAnim,
-            transform: [
-              {
-                translateY: headerAnim.interpolate({
-                  inputRange: [0, 1],
-                  outputRange: [-20, 0],
-                }),
-              },
-            ],
-          },
-        ]}
-      >
-        <View>
-          <AppText variant="muted">Good morning</AppText>
-          <Title variant="h2">Alex Johnson</Title>
-        </View>
-        <TouchableOpacity
-          style={[styles.notifBtn, { backgroundColor: colors.surfaceElevated }]}
-        >
-          <Bell size={20} color={colors.text} />
-          <View style={[styles.notifDot, { backgroundColor: colors.danger }]} />
-        </TouchableOpacity>
-      </Animated.View>
-
-      <Animated.View
-        style={{
-          opacity: balanceAnim,
-          transform: [
-            {
-              translateY: balanceAnim.interpolate({
-                inputRange: [0, 1],
-                outputRange: [30, 0],
-              }),
-            },
-          ],
-        }}
-      >
-        <LinearGradient
-          colors={[colors.cardGradientStart, colors.cardGradientEnd]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.balanceCard}
-        >
-          <View style={styles.balanceHeader}>
-            <AppText color="rgba(255,255,255,0.8)" variant="muted">
-              Total Balance
-            </AppText>
-            <TouchableOpacity
-              onPress={() => setBalanceVisible(!balanceVisible)}
-              hitSlop={12}
-            >
-              {balanceVisible ? (
-                <Eye size={20} color="rgba(255,255,255,0.8)" />
-              ) : (
-                <EyeOff size={20} color="rgba(255,255,255,0.8)" />
-              )}
-            </TouchableOpacity>
-          </View>
-          <Title variant="h1" color="#fff" style={styles.balanceValue}>
-            {balanceVisible ? "$46,790.40" : "••••••"}
-          </Title>
-          <View style={styles.balanceActions}>
-            <TouchableOpacity style={styles.balanceAction}>
-              <View style={styles.balanceActionIcon}>
-                <ArrowUpRight size={18} color="#fff" />
-              </View>
-              <AppText
-                color="rgba(255,255,255,0.9)"
-                variant="small"
-                weight="500"
-              >
-                Send
-              </AppText>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.balanceAction}>
-              <View style={styles.balanceActionIcon}>
-                <ArrowDownLeft size={18} color="#fff" />
-              </View>
-              <AppText
-                color="rgba(255,255,255,0.9)"
-                variant="small"
-                weight="500"
-              >
-                Receive
-              </AppText>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.balanceAction}>
-              <View style={styles.balanceActionIcon}>
-                <Wallet size={18} color="#fff" />
-              </View>
-              <AppText
-                color="rgba(255,255,255,0.9)"
-                variant="small"
-                weight="500"
-              >
-                Top Up
-              </AppText>
-            </TouchableOpacity>
-          </View>
-        </LinearGradient>
-      </Animated.View>
-
-      <View style={styles.statsRow}>
-        <StatCard
-          icon={<ArrowDownLeft size={20} color={colors.success} />}
-          label="Income"
-          value="$9,990"
-          trend={{ value: "+12.5%", positive: true }}
-          accentColor={colors.success}
-          delay={200}
-        />
-        <StatCard
-          icon={<ArrowUpRight size={20} color={colors.danger} />}
-          label="Expenses"
-          value="$3,140"
-          trend={{ value: "-4.2%", positive: false }}
-          accentColor={colors.danger}
-          delay={350}
-        />
+    <View style={styles.container}>
+      <View style={styles.header}>
+        <Text style={styles.headerTitle}>Tableau de bord</Text>
+        <Text style={styles.headerSubtitle}>Aperçu de votre magasin</Text>
       </View>
+      <ScrollView contentContainerStyle={styles.content}>
+        <View style={styles.statsGrid}>
+          <View style={[styles.statCard, styles.statCardSecondary]}>
+            <View style={styles.statIcon}>
+              <TabletSmartphone size={24} color="#FFF" />
+            </View>
+            <View style={styles.statGroup}>
+              <Text style={styles.statValue}>{stats.totalProducts}</Text>
+              <Text style={styles.statLabel}>Produit</Text>
+            </View>
+            <View style={styles.statGroup}>
+              <Text style={styles.statValue}>{stats.totalProductStock}</Text>
+              <Text style={styles.statLabel}>En stock</Text>
+            </View>
+            <Text style={styles.statValue}>
+              {formatAriary(stats.totalProductPrice)}
+            </Text>
+          </View>
 
-      <View style={styles.chartSection}>
-        <View style={styles.sectionHeader}>
-          <Title variant="h3">Monthly Spending</Title>
-          <AppText variant="small" color={colors.primary}>
-            See all
-          </AppText>
-        </View>
-        <View
-          style={[
-            styles.chartContainer,
-            {
-              backgroundColor: colors.surfaceElevated,
-              borderColor: colors.border,
-            },
-          ]}
-        >
-          <View style={styles.barChart}>
-            {monthlyExpenses.map((item, index) => {
-              const maxVal = Math.max(...monthlyExpenses.map((e) => e.value));
-              const heightPercent = (item.value / maxVal) * 100;
-              return (
-                <View key={item.label} style={styles.barItem}>
-                  <View style={styles.barWrapper}>
-                    <View
-                      style={[
-                        styles.bar,
-                        {
-                          height: `${heightPercent}%` as any,
-                          backgroundColor:
-                            index === monthlyExpenses.length - 1
-                              ? colors.primary
-                              : colors.primary + "40",
-                          borderRadius: 6,
-                        },
-                      ]}
-                    />
-                  </View>
-                  <AppText variant="small" align="center">
-                    {item.label}
-                  </AppText>
-                </View>
-              );
-            })}
+          <View style={[styles.statCard, styles.statCardSecondary]}>
+            <View style={styles.statIcon}>
+              <Package size={24} color="#FFF" />
+            </View>
+            <View style={styles.statGroup}>
+              <Text style={styles.statValue}>{stats.totalAccessory}</Text>
+              <Text style={styles.statLabel}>Accessoire</Text>
+            </View>
+            <View style={styles.statGroup}>
+              <Text style={styles.statValue}>{stats.totalAccessoryStock}</Text>
+              <Text style={styles.statLabel}>En stock</Text>
+            </View>
+            <Text style={styles.statValue}>
+              {formatAriary(stats.totalAccessoryPrice)}
+            </Text>
           </View>
         </View>
-      </View>
 
-      <View style={styles.categoriesSection}>
-        <View style={styles.sectionHeader}>
-          <Title variant="h3">Spending by Category</Title>
+        <View style={styles.statsGrid}>
+          <View style={[styles.statCard, styles.statCardWarning]}>
+            <View style={styles.statIcon}>
+              <ShoppingCart size={24} color="#FFF" />
+            </View>
+            <Text style={styles.statValue}>{stats.totalSales}</Text>
+            <Text style={styles.statLabel}>Ventes totales</Text>
+          </View>
         </View>
-        {spendingCategories.map((cat) => (
-          <View
-            key={cat.name}
-            style={[styles.categoryRow, { borderBottomColor: colors.border }]}
-          >
-            <View
-              style={[styles.categoryDot, { backgroundColor: cat.color }]}
-            />
-            <View style={styles.categoryInfo}>
-              <AppText weight="500">{cat.name}</AppText>
-              <View
-                style={[
-                  styles.categoryBar,
-                  { backgroundColor: colors.surface },
-                ]}
-              >
-                <View
-                  style={[
-                    styles.categoryBarFill,
-                    {
-                      width: `${cat.percent}%` as any,
-                      backgroundColor: cat.color,
-                    },
-                  ]}
-                />
+
+        <View style={styles.statsGrid}>
+          <View style={[styles.statCard, styles.statCardSuccess]}>
+            <View style={styles.statIcon}>
+              <LucidePiggyBank size={24} color="#FFF" />
+            </View>
+            <Text style={styles.statValue}>
+              {formatAriary(stats.totalGain)}
+            </Text>
+            <Text style={styles.statLabel}>Valeur d&apos;inventaire</Text>
+          </View>
+        </View>
+
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>
+            Performance d&apos;aujourd&apos;hui
+          </Text>
+          <View style={styles.performanceCard}>
+            <View style={styles.performanceRow}>
+              <View style={styles.performanceItem}>
+                <TrendingUp size={20} color="#34C759" />
+                <Text style={styles.performanceValue}>{stats.todaySales}</Text>
+                <Text style={styles.performanceLabel}>
+                  Ventes aujourd&apos;hui
+                </Text>
+              </View>
+              <View style={styles.performanceDivider} />
+              <View style={styles.performanceItem}>
+                <DollarSign size={20} color="#007AFF" />
+                <Text style={styles.performanceValue}>
+                  {formatAriary(stats.todayRevenue)}
+                </Text>
+                <Text style={styles.performanceLabel}>
+                  Revenus aujourd&apos;hui
+                </Text>
               </View>
             </View>
-            <AppText weight="600">{cat.amount}</AppText>
           </View>
-        ))}
-      </View>
-
-      <View style={styles.transactionsSection}>
-        <View style={styles.sectionHeader}>
-          <Title variant="h3">Recent Transactions</Title>
-          <AppText variant="small" color={colors.primary}>
-            View all
-          </AppText>
         </View>
-        {recentTransactions.slice(0, 5).map((item) => (
-          <View key={item.id}>{renderTransactionItem({ item })}</View>
-        ))}
-      </View>
 
-      <View style={{ height: 20 }} />
-    </ScreenContainer>
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Résumé des ventes</Text>
+          <View style={styles.summaryCard}>
+            <View style={styles.summaryRow}>
+              <Text style={styles.summaryLabel}>Revenu total</Text>
+              <Text style={styles.summaryValue}>
+                {formatAriary(stats.totalRevenue)}
+              </Text>
+            </View>
+            <View style={styles.summaryDivider} />
+            <View style={styles.summaryRow}>
+              <Text style={styles.summaryLabel}>Vente moyenne</Text>
+              <Text style={styles.summaryValue}>
+                {stats.totalSales > 0
+                  ? formatAriary(stats.totalRevenue / stats.totalSales)
+                  : "0 Ar"}
+              </Text>
+            </View>
+            <View style={styles.summaryDivider} />
+            <View style={styles.summaryRow}>
+              <Text style={styles.summaryLabel}>TOP Marque</Text>
+              <Text style={styles.summaryValue}>
+                {stats.topBrand
+                  ? `${stats.topBrand.name} (${stats.topBrand.count})`
+                  : "N/A"}
+              </Text>
+            </View>
+          </View>
+        </View>
+
+        <View style={styles.quickActions}>
+          <Pressable
+            style={styles.quickActionButton}
+            onPress={() => router.push("/(tabs)/stock/product/add")}
+          >
+            <Package size={24} color="#007AFF" />
+            <Text style={styles.quickActionText}>Ajouter produit</Text>
+          </Pressable>
+          <Pressable
+            style={styles.quickActionButton}
+            onPress={() => router.push("/(tabs)/sales")}
+          >
+            <ShoppingCart size={24} color="#007AFF" />
+            <Text style={styles.quickActionText}>Record de vente</Text>
+          </Pressable>
+        </View>
+      </ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  header: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingTop: 10,
-    paddingBottom: 20,
-    paddingHorizontal: 20,
+  container: {
+    flex: 1,
+    backgroundColor: "#F5F5F7",
+    paddingTop: 30,
   },
-  notifBtn: {
-    width: 44,
-    height: 44,
-    borderRadius: 14,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  notifDot: {
-    position: "absolute",
-    top: 10,
-    right: 10,
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-  },
-  balanceCard: {
-    marginHorizontal: 20,
-    borderRadius: 24,
-    padding: 24,
-    marginBottom: 20,
-  },
-  balanceHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-  balanceValue: {
-    marginTop: 8,
-    fontSize: 36,
-    letterSpacing: -1,
-  },
-  balanceActions: {
-    flexDirection: "row",
-    marginTop: 24,
-    gap: 20,
-  },
-  balanceAction: {
-    alignItems: "center",
-    gap: 6,
-  },
-  balanceActionIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: 14,
-    backgroundColor: "rgba(255,255,255,0.2)",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  statsRow: {
-    flexDirection: "row",
-    paddingHorizontal: 20,
-    gap: 12,
-    marginBottom: 24,
-  },
-  chartSection: {
-    paddingHorizontal: 20,
-    marginBottom: 24,
-  },
-  sectionHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 14,
-  },
-  chartContainer: {
-    borderRadius: 16,
-    borderWidth: 1,
+  content: {
     padding: 20,
   },
-  barChart: {
-    flexDirection: "row",
-    alignItems: "flex-end",
-    justifyContent: "space-between",
-    height: 140,
-    gap: 8,
-  },
-  barItem: {
+  loadingContainer: {
     flex: 1,
-    alignItems: "center",
-    gap: 8,
+    justifyContent: "center" as const,
+    alignItems: "center" as const,
   },
-  barWrapper: {
-    flex: 1,
-    width: "100%",
-    justifyContent: "flex-end",
-    alignItems: "center",
-  },
-  bar: {
-    width: "65%",
-    minHeight: 8,
-  },
-  categoriesSection: {
+  header: {
     paddingHorizontal: 20,
+    paddingVertical: 8,
+  },
+  headerTitle: {
+    fontSize: 32,
+    fontWeight: "700" as const,
+    color: "#000",
+    marginBottom: 4,
+  },
+  headerSubtitle: {
+    fontSize: 16,
+    color: "#666",
+  },
+  statsGrid: {
+    flexDirection: "row" as const,
+    flexWrap: "wrap" as const,
+    gap: 12,
     marginBottom: 24,
   },
-  categoryRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingVertical: 14,
-    borderBottomWidth: 1,
-    gap: 12,
-  },
-  categoryDot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-  },
-  categoryInfo: {
+  statCard: {
     flex: 1,
-    gap: 6,
+    minWidth: "47%",
+    padding: 20,
+    borderRadius: 16,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
-  categoryBar: {
-    height: 6,
-    borderRadius: 3,
-    overflow: "hidden",
+  statCardSecondary: {
+    backgroundColor: "#5856D6",
   },
-  categoryBarFill: {
-    height: "100%",
-    borderRadius: 3,
+  statCardSuccess: {
+    backgroundColor: "#34C759",
   },
-  transactionsSection: {
-    paddingHorizontal: 20,
+  statCardWarning: {
+    backgroundColor: "#FF9500",
   },
-  txRow: {
+  statIcon: {
+    marginBottom: 12,
+  },
+  statGroup: {
     flexDirection: "row",
+    justifyContent: "flex-start",
     alignItems: "center",
-    paddingVertical: 14,
-    borderBottomWidth: 1,
+    gap: 10,
+  },
+  statValue: {
+    fontSize: 32,
+    fontWeight: "700" as const,
+    color: "#FFF",
+    marginBottom: 4,
+  },
+  statLabel: {
+    fontSize: 14,
+    color: "rgba(255, 255, 255, 0.9)",
+  },
+  section: {
+    marginBottom: 24,
+  },
+  sectionTitle: {
+    fontSize: 20,
+    fontWeight: "600" as const,
+    color: "#000",
+    marginBottom: 12,
+  },
+  performanceCard: {
+    backgroundColor: "#FFF",
+    borderRadius: 16,
+    padding: 20,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  performanceRow: {
+    flexDirection: "row" as const,
+    justifyContent: "space-around" as const,
+  },
+  performanceItem: {
+    alignItems: "center" as const,
+    gap: 8,
+  },
+  performanceDivider: {
+    width: 1,
+    backgroundColor: "#E5E5EA",
+  },
+  performanceValue: {
+    fontSize: 28,
+    fontWeight: "700" as const,
+    color: "#000",
+  },
+  performanceLabel: {
+    fontSize: 14,
+    color: "#666",
+  },
+  summaryCard: {
+    backgroundColor: "#FFF",
+    borderRadius: 16,
+    padding: 20,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  summaryRow: {
+    flexDirection: "row" as const,
+    justifyContent: "space-between" as const,
+    alignItems: "center" as const,
+  },
+  summaryDivider: {
+    height: 1,
+    backgroundColor: "#E5E5EA",
+    marginVertical: 16,
+  },
+  summaryLabel: {
+    fontSize: 16,
+    color: "#666",
+  },
+  summaryValue: {
+    fontSize: 18,
+    fontWeight: "600" as const,
+    color: "#000",
+  },
+  quickActions: {
+    flexDirection: "row" as const,
     gap: 12,
+    marginTop: 8,
   },
-  txIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: 14,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  txInfo: {
+  quickActionButton: {
     flex: 1,
-    gap: 2,
+    backgroundColor: "#FFF",
+    borderRadius: 12,
+    padding: 20,
+    alignItems: "center" as const,
+    gap: 8,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
-  txAmount: {
-    alignItems: "flex-end",
-    gap: 2,
+  quickActionText: {
+    fontSize: 15,
+    fontWeight: "600" as const,
+    color: "#007AFF",
   },
 });

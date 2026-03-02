@@ -29,6 +29,7 @@ export default function ProductsListScreen() {
     productsError,
     productsRefetch,
     addProduct,
+    deleteProduct,
   } = useProduct();
 
   const handleCreateMock = () => {
@@ -69,7 +70,7 @@ export default function ProductsListScreen() {
           style: "destructive",
           onPress: async () => {
             try {
-              // await deleteProduct(id);
+              await deleteProduct(id);
             } catch (error) {
               Alert.alert("Error", "Échec de la suppression du produit");
               console.error("Erreur de suppression:", error);

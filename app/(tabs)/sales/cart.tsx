@@ -1,5 +1,10 @@
-import { Sale } from "@/core/entity/sale.entity";
-import React, { useState } from "react";
+import { useAccessory } from "@/core/contexts/AccessoryContext";
+import { useProduct } from "@/core/contexts/ProductContext";
+import { useSale } from "@/core/contexts/SaleContext";
+import { NewSale } from "@/core/entity/sale.entity";
+import { useTheme } from "@/theme/ThemeProvider";
+import { useLocalSearchParams, useRouter } from "expo-router";
+import React, { useMemo } from "react";
 import {
   FlatList,
   StyleSheet,
@@ -8,29 +13,52 @@ import {
   View,
 } from "react-native";
 
-const COLORS = {
-  background: "#0F172A",
-  card: "#1E293B",
-  primary: "#22C55E",
-  accent: "#3B82F6",
-  text: "#F8FAFC",
-  muted: "#94A3B8",
-};
+export default function CartScreen() {
+  const router = useRouter();
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
 
-export default function CartScreen({ route }: any) {
-  const [items] = useState<Sale[]>([route.params.sale]);
+  const { sale: saleStr } = useLocalSearchParams<{ sale: string }>();
+  const sale: NewSale = JSON.parse(saleStr);
 
-  const total = items.reduce(
-    (sum, item) => sum + item.quantity * item.unitPrice,
-    0,
-  );
+  const { addSale } = useSale();
+  const { products, updateProduct } = useProduct();
+  const { accessorys: accessories, updateAccessory } = useAccessory();
+
+  const total = sale.quantity * sale.unitPrice;
+
+  const handleConfirm = async () => {
+    await addSale(sale);
+
+    if (sale.productId) {
+      const p = products.find((x) => x.id === sale.productId);
+      if (p) {
+        await updateProduct({
+          ...p,
+          quantity: p.quantity - sale.quantity,
+          stockUpdatedAt: new Date().toISOString(),
+        });
+      }
+    } else if (sale.accessoryId) {
+      const a = accessories.find((x) => x.id === sale.accessoryId);
+      if (a) {
+        await updateAccessory({
+          ...a,
+          quantity: a.quantity - sale.quantity,
+          stockUpdatedAt: new Date().toISOString(),
+        });
+      }
+    }
+
+    router.replace("/(tabs)/sales");
+  };
 
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Panier</Text>
 
       <FlatList
-        data={items}
+        data={[sale]}
         keyExtractor={(_, index) => index.toString()}
         renderItem={({ item }) => (
           <View style={styles.card}>
@@ -44,7 +72,7 @@ export default function CartScreen({ route }: any) {
       <View style={styles.footer}>
         <Text style={styles.total}>Total: {total.toLocaleString()} Ar</Text>
 
-        <TouchableOpacity style={styles.confirmButton}>
+        <TouchableOpacity style={styles.confirmButton} onPress={handleConfirm}>
           <Text style={styles.confirmText}>Confirmer la vente</Text>
         </TouchableOpacity>
       </View>
@@ -52,49 +80,50 @@ export default function CartScreen({ route }: any) {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: COLORS.background,
-    padding: 16,
-  },
-  title: {
-    color: COLORS.text,
-    fontSize: 24,
-    fontWeight: "bold",
-    marginBottom: 16,
-  },
-  card: {
-    backgroundColor: COLORS.card,
-    padding: 16,
-    borderRadius: 16,
-    marginBottom: 12,
-  },
-  text: {
-    color: COLORS.text,
-    fontWeight: "600",
-  },
-  muted: {
-    color: COLORS.muted,
-    marginTop: 4,
-  },
-  footer: {
-    marginTop: 20,
-  },
-  total: {
-    color: COLORS.text,
-    fontSize: 20,
-    fontWeight: "bold",
-    marginBottom: 16,
-  },
-  confirmButton: {
-    backgroundColor: COLORS.accent,
-    padding: 16,
-    borderRadius: 16,
-  },
-  confirmText: {
-    color: "#fff",
-    textAlign: "center",
-    fontWeight: "bold",
-  },
-});
+const createStyles = (colors: ReturnType<typeof useTheme>["colors"]) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: colors.background,
+      padding: 16,
+    },
+    title: {
+      color: colors.text,
+      fontSize: 24,
+      fontWeight: "bold",
+      marginBottom: 16,
+    },
+    card: {
+      backgroundColor: colors.surfaceElevated,
+      padding: 16,
+      borderRadius: 16,
+      marginBottom: 12,
+    },
+    text: {
+      color: colors.text,
+      fontWeight: "600",
+    },
+    muted: {
+      color: colors.textMuted,
+      marginTop: 4,
+    },
+    footer: {
+      marginTop: 20,
+    },
+    total: {
+      color: colors.text,
+      fontSize: 20,
+      fontWeight: "bold",
+      marginBottom: 16,
+    },
+    confirmButton: {
+      backgroundColor: colors.primary,
+      padding: 16,
+      borderRadius: 16,
+    },
+    confirmText: {
+      color: colors.textInverse,
+      textAlign: "center",
+      fontWeight: "bold",
+    },
+  });

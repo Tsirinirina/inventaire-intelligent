@@ -1,8 +1,8 @@
+import { useAccessory } from "@/core/contexts/AccessoryContext";
 import { useProduct } from "@/core/contexts/ProductContext";
-import { useSale } from "@/core/contexts/SaleContext";
 import { SellableItem } from "@/core/entity/sale.entity";
 import { useTheme } from "@/theme/ThemeProvider";
-import { useNavigation } from "@react-navigation/native";
+import { useRouter } from "expo-router";
 import React, { useMemo } from "react";
 import {
   FlatList,
@@ -13,24 +13,29 @@ import {
   View,
 } from "react-native";
 
-interface Props {
-  items: SellableItem[];
-}
-
-export default function SaleScreen({ items }: Props) {
-  const { sales, salesLoading } = useSale();
-  const { products, productsLoading } = useProduct();
-
-  const navigation = useNavigation<any>();
+export default function SaleScreen() {
+  const router = useRouter();
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
 
+  const { products } = useProduct();
+  const { accessorys: accessories } = useAccessory();
+
+  const items: SellableItem[] = useMemo(
+    () => [
+      ...products.map((p) => ({ ...p, type: "product" as const })),
+      ...accessories.map((a) => ({ ...a, type: "accessory" as const })),
+    ],
+    [products, accessories],
+  );
+
   const renderItem = ({ item }: { item: SellableItem }) => (
     <View style={styles.card}>
-      <Image
-        source={{ uri: item.imageUri || "https://via.placeholder.com/80" }}
-        style={styles.image}
-      />
+      {item.imageUri ? (
+        <Image source={{ uri: item.imageUri }} style={styles.image} />
+      ) : (
+        <View style={[styles.image, styles.imagePlaceholder]} />
+      )}
 
       <View style={styles.info}>
         <Text style={styles.name}>{item.name}</Text>
@@ -44,7 +49,12 @@ export default function SaleScreen({ items }: Props) {
 
       <TouchableOpacity
         style={styles.addButton}
-        onPress={() => navigation.navigate("AddToCart", { item })}
+        onPress={() =>
+          router.push({
+            pathname: "/(tabs)/sales/add",
+            params: { item: JSON.stringify(item) },
+          })
+        }
       >
         <Text style={styles.addText}>Ajouter</Text>
       </TouchableOpacity>
@@ -78,7 +88,7 @@ const createStyles = (colors: ReturnType<typeof useTheme>["colors"]) =>
       marginBottom: 16,
     },
     card: {
-      backgroundColor: colors.cardGradientEnd,
+      backgroundColor: colors.surfaceElevated,
       borderRadius: 20,
       padding: 16,
       marginBottom: 12,
@@ -90,6 +100,9 @@ const createStyles = (colors: ReturnType<typeof useTheme>["colors"]) =>
       height: 64,
       borderRadius: 12,
       marginRight: 16,
+    },
+    imagePlaceholder: {
+      backgroundColor: colors.inputBackground,
     },
     info: {
       flex: 1,
@@ -121,7 +134,7 @@ const createStyles = (colors: ReturnType<typeof useTheme>["colors"]) =>
       borderRadius: 12,
     },
     addText: {
-      color: "#fff",
+      color: colors.textInverse,
       fontWeight: "600",
     },
   });

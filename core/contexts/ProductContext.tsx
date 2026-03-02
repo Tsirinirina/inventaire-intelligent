@@ -5,6 +5,7 @@ import { useMutationState } from "../hooks/mutationState";
 import { useQueryState } from "../hooks/queryState";
 import {
   useAddProductQuery,
+  useDeleteProductQuery,
   useGetAllProductsQuery,
   useUpdateProductQuery,
 } from "../queries/product.query";
@@ -39,6 +40,13 @@ export const [ProductProvider, useProduct] = createContextHook(() => {
   const { updateProduct, productUpdating, productUpdatingError } =
     useMutationState("update", PRODUCT_QUERY_KEY, updateProductQuery);
 
+  /**
+   * Delete product query
+   */
+  const deleteProductQuery = useDeleteProductQuery(queryClient);
+  const { deleteProduct, productDeleting, productDeletingError } =
+    useMutationState("delete", PRODUCT_QUERY_KEY, deleteProductQuery);
+
   return {
     ...getAllProductsState,
     addProduct,
@@ -47,5 +55,8 @@ export const [ProductProvider, useProduct] = createContextHook(() => {
     updateProduct,
     productUpdating,
     productUpdatingError,
+    deleteProduct,
+    productDeleting,
+    productDeletingError,
   };
 });
