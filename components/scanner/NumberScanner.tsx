@@ -1,5 +1,8 @@
-import MaskedView from "@react-native-masked-view/masked-view";
+import * as ImageManipulator from "expo-image-manipulator";
 import { CameraView, useCameraPermissions } from "expo-camera";
+import { getTextFromFrame } from "expo-text-recognition";
+import { useTheme } from "@/theme/ThemeProvider";
+import { ScanLine, X } from "lucide-react-native";
 import React, { useRef, useState } from "react";
 import {
   ActivityIndicator,
@@ -9,136 +12,248 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import Tesseract from "tesseract.js";
 
 interface NumberScannerProps {
   onScan: (value: string) => void;
   onClose: () => void;
 }
 
+/**
+ * Extrait un IMEI (15 chiffres consécutifs) depuis les lignes OCR.
+ * Cherche ligne par ligne, puis dans le texte global concatené.
+ */
+function extractImei(lines: string[]): string | null {
+  for (const line of lines) {
+    const digits = line.replace(/\D/g, "");
+    const match = digits.match(/\d{15}/);
+    if (match) return match[0];
+  }
+  // fallback : concatène tout et cherche
+  const all = lines.join("").replace(/\D/g, "");
+  const match = all.match(/\d{15}/);
+  return match ? match[0] : null;
+}
+
 export default function NumberScanner({ onScan, onClose }: NumberScannerProps) {
+  const { colors } = useTheme();
   const [permission, requestPermission] = useCameraPermissions();
   const [isProcessing, setIsProcessing] = useState(false);
+  const [hint, setHint] = useState("Cadrez les 15 chiffres de l'IMEI");
   const cameraRef = useRef<CameraView>(null);
 
-  if (!permission)
-    return (
-      <View style={styles.center}>
-        <ActivityIndicator />
-      </View>
-    );
-
-  if (!permission.granted) {
-    return (
-      <View style={styles.center}>
-        <Text>Permission caméra requise</Text>
-        <TouchableOpacity style={styles.button} onPress={requestPermission}>
-          <Text>Autoriser</Text>
-        </TouchableOpacity>
-        <TouchableOpacity onPress={onClose}>
-          <Text style={{ marginTop: 20 }}>Annuler</Text>
-        </TouchableOpacity>
-      </View>
-    );
-  }
-
   const handleCapture = async () => {
-    if (cameraRef.current && !isProcessing) {
-      try {
-        setIsProcessing(true);
-        const photo = await cameraRef.current.takePictureAsync({
-          quality: 0.5,
-          skipProcessing: true,
-        });
+    if (!cameraRef.current || isProcessing) return;
 
-        const result = await Tesseract.recognize(photo.uri);
+    setIsProcessing(true);
+    setHint("Analyse en cours...");
 
-        if (result.data.text) {
-          const numbersOnly = result.data.text.replace(/[^0-9]/g, "");
+    try {
+      const photo = await cameraRef.current.takePictureAsync({
+        quality: 0.85,
+        skipProcessing: true,
+      });
 
-          if (numbersOnly) {
-            onScan(numbersOnly);
-          }
-        }
-      } catch (error) {
-        console.error("Erreur OCR:", error);
-      } finally {
+      // Amélioration : resize pour accélérer l'OCR
+      const processed = await ImageManipulator.manipulateAsync(
+        photo.uri,
+        [{ resize: { width: 1200 } }],
+        { compress: 0.9, format: ImageManipulator.SaveFormat.JPEG },
+      );
+
+      const lines = await getTextFromFrame(processed.uri, false);
+      const imei = extractImei(lines);
+
+      if (imei) {
+        onScan(imei);
+      } else {
+        setHint("IMEI non détecté — repositionnez et réessayez");
         setIsProcessing(false);
       }
+    } catch (err) {
+      console.error("OCR error:", err);
+      setHint("Erreur d'analyse — réessayez");
+      setIsProcessing(false);
     }
   };
 
+  if (!permission) {
+    return (
+      <Modal animationType="slide" statusBarTranslucent>
+        <View style={[styles.center, { backgroundColor: colors.background }]}>
+          <ActivityIndicator color={colors.primary} />
+        </View>
+      </Modal>
+    );
+  }
+
+  if (!permission.granted) {
+    return (
+      <Modal animationType="slide" statusBarTranslucent>
+        <View style={[styles.center, { backgroundColor: colors.background }]}>
+          <Text style={{ color: colors.text, fontSize: 16, marginBottom: 16, textAlign: "center" }}>
+            L&apos;accès à la caméra est requis pour scanner l&apos;IMEI
+          </Text>
+          <TouchableOpacity
+            style={[styles.permBtn, { backgroundColor: colors.primary }]}
+            onPress={requestPermission}
+          >
+            <Text style={{ color: colors.textInverse, fontWeight: "600", fontSize: 15 }}>
+              Autoriser la caméra
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={onClose} style={{ marginTop: 20 }}>
+            <Text style={{ color: colors.textMuted, fontSize: 15 }}>Annuler</Text>
+          </TouchableOpacity>
+        </View>
+      </Modal>
+    );
+  }
+
   return (
-    <Modal animationType="slide">
+    <Modal animationType="slide" statusBarTranslucent>
       <View style={styles.container}>
-        <MaskedView
-          maskElement={
-            <Text style={{ color: "black", fontSize: 40 }}>Hello</Text>
-          }
-        >
-          <CameraView style={styles.camera} ref={cameraRef}>
-            <View style={styles.overlay}>
-              <TouchableOpacity style={styles.closeBtn} onPress={onClose}>
-                <Text style={styles.closeText}>X</Text>
-              </TouchableOpacity>
+        <CameraView style={styles.camera} ref={cameraRef} facing="back">
+          {/* Header */}
+          <View style={styles.header}>
+            <TouchableOpacity style={styles.closeBtn} onPress={onClose}>
+              <X size={22} color="#fff" />
+            </TouchableOpacity>
+            <Text style={styles.headerTitle}>Scanner IMEI</Text>
+          </View>
 
-              <View style={styles.resultBox}>
-                <Text style={styles.resultText}>
-                  {isProcessing ? "Analyse..." : "Ciblez les chiffres"}
-                </Text>
-              </View>
-
-              <TouchableOpacity
-                style={[styles.scanBtn, isProcessing && { opacity: 0.5 }]}
-                onPress={handleCapture}
-                disabled={isProcessing}
-              >
-                <ActivityIndicator animating={isProcessing} color="#000" />
-                {!isProcessing && (
-                  <Text style={styles.buttonTextBlack}>SCANNER</Text>
-                )}
-              </TouchableOpacity>
+          {/* Zone de visée */}
+          <View style={styles.viewfinderArea}>
+            <View style={styles.viewfinder}>
+              <View style={[styles.corner, styles.cornerTL]} />
+              <View style={[styles.corner, styles.cornerTR]} />
+              <View style={[styles.corner, styles.cornerBL]} />
+              <View style={[styles.corner, styles.cornerBR]} />
             </View>
-          </CameraView>
-        </MaskedView>
+            <Text style={styles.viewfinderLabel}>
+              Visez les 15 chiffres de l&apos;IMEI (*#06#)
+            </Text>
+          </View>
+
+          {/* Footer */}
+          <View style={styles.footer}>
+            <Text style={styles.hintText}>{hint}</Text>
+            <TouchableOpacity
+              style={[styles.scanBtn, isProcessing && styles.scanBtnDisabled]}
+              onPress={handleCapture}
+              disabled={isProcessing}
+            >
+              {isProcessing ? (
+                <ActivityIndicator color="#000" size="small" />
+              ) : (
+                <>
+                  <ScanLine size={20} color="#000" />
+                  <Text style={styles.scanBtnText}>SCANNER</Text>
+                </>
+              )}
+            </TouchableOpacity>
+          </View>
+        </CameraView>
       </View>
     </Modal>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "black" },
-  center: { flex: 1, justifyContent: "center", alignItems: "center" },
-  camera: { flex: 1 },
-  overlay: {
+  container: {
     flex: 1,
-    justifyContent: "flex-end",
+    backgroundColor: "#000",
+  },
+  center: {
+    flex: 1,
+    justifyContent: "center",
     alignItems: "center",
-    paddingBottom: 60,
+    padding: 32,
+  },
+  camera: {
+    flex: 1,
+  },
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingTop: 56,
+    paddingHorizontal: 20,
+    paddingBottom: 16,
+    backgroundColor: "rgba(0,0,0,0.45)",
+    gap: 14,
   },
   closeBtn: {
+    padding: 8,
+    borderRadius: 20,
+    backgroundColor: "rgba(255,255,255,0.18)",
+  },
+  headerTitle: {
+    color: "#fff",
+    fontSize: 18,
+    fontWeight: "700",
+  },
+  viewfinderArea: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    gap: 20,
+  },
+  viewfinder: {
+    width: 300,
+    height: 90,
+    position: "relative",
+  },
+  corner: {
     position: "absolute",
-    top: 50,
-    right: 20,
+    width: 22,
+    height: 22,
+    borderColor: "#fff",
+    borderWidth: 3,
+  },
+  cornerTL: { top: 0, left: 0, borderRightWidth: 0, borderBottomWidth: 0 },
+  cornerTR: { top: 0, right: 0, borderLeftWidth: 0, borderBottomWidth: 0 },
+  cornerBL: { bottom: 0, left: 0, borderRightWidth: 0, borderTopWidth: 0 },
+  cornerBR: { bottom: 0, right: 0, borderLeftWidth: 0, borderTopWidth: 0 },
+  viewfinderLabel: {
+    color: "rgba(255,255,255,0.75)",
+    fontSize: 13,
+    textAlign: "center",
+    paddingHorizontal: 32,
+  },
+  footer: {
     backgroundColor: "rgba(0,0,0,0.5)",
-    padding: 15,
-    borderRadius: 30,
+    paddingVertical: 28,
+    paddingHorizontal: 32,
+    alignItems: "center",
+    gap: 18,
   },
-  closeText: { color: "white", fontWeight: "bold" },
-  resultBox: {
-    backgroundColor: "rgba(0,0,0,0.6)",
-    padding: 15,
-    borderRadius: 10,
-    marginBottom: 20,
+  hintText: {
+    color: "rgba(255,255,255,0.85)",
+    fontSize: 14,
+    textAlign: "center",
   },
-  resultText: { color: "white", fontSize: 18 },
   scanBtn: {
     backgroundColor: "#fff",
-    paddingHorizontal: 40,
-    paddingVertical: 20,
+    paddingHorizontal: 44,
+    paddingVertical: 16,
     borderRadius: 40,
     flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    minWidth: 160,
+    justifyContent: "center",
   },
-  buttonTextBlack: { color: "#000", fontSize: 18, fontWeight: "bold" },
-  button: { backgroundColor: "#2196F3", padding: 15, borderRadius: 10 },
+  scanBtnDisabled: {
+    opacity: 0.55,
+  },
+  scanBtnText: {
+    color: "#000",
+    fontSize: 16,
+    fontWeight: "700",
+    letterSpacing: 0.5,
+  },
+  permBtn: {
+    paddingHorizontal: 28,
+    paddingVertical: 14,
+    borderRadius: 14,
+  },
 });

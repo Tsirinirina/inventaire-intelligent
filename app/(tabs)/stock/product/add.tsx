@@ -1,3 +1,4 @@
+import { SearchPickerModal } from "@/components/ui/SearchPickerModal";
 import { PRODUCT_BRANDS } from "@/core/constants/brands";
 import { useProduct } from "@/core/contexts/ProductContext";
 import { NewProduct } from "@/core/entity/product.entity";
@@ -6,13 +7,15 @@ import {
   productFormDefaultValues,
   productSchema,
 } from "@/core/forms/product.form";
+import { useTheme } from "@/theme/ThemeProvider";
+import { ThemeColors } from "@/theme/colors";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { CameraView, useCameraPermissions } from "expo-camera";
 import { Directory, File, Paths } from "expo-file-system";
 import { Image } from "expo-image";
 import * as ImagePicker from "expo-image-picker";
 import { useRouter } from "expo-router";
-import { Camera, Check, Image as ImageIcon, X } from "lucide-react-native";
+import { Camera, Check, X } from "lucide-react-native";
 import { useRef, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import {
@@ -27,17 +30,10 @@ import {
   TextInput,
   View,
 } from "react-native";
-import { DropdownSelect } from "react-native-input-select";
-
-import { useTheme } from "@/theme/ThemeProvider";
-import { ThemeColors } from "@/theme/colors";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export default function AddProductScreen() {
   const router = useRouter();
   const { colors } = useTheme();
-  const insets = useSafeAreaInsets();
-
   const { addProduct, productAdding } = useProduct();
   const [permission, requestPermission] = useCameraPermissions();
   const cameraRef = useRef<CameraView>(null);
@@ -46,23 +42,24 @@ export default function AddProductScreen() {
     control,
     handleSubmit,
     setValue,
+    watch,
     formState: { errors },
   } = useForm<ProductForm>({
     resolver: zodResolver(productSchema),
     defaultValues: productFormDefaultValues,
   });
 
+  const brandValue = watch("brand");
+
   const [imageUri, setImageUri] = useState<string | undefined>(undefined);
   const [showCamera, setShowCamera] = useState(false);
 
+  // ── Caméra ──────────────────────────────────────────────────────────
   const handleTakePhoto = async () => {
     if (!permission?.granted) {
       const result = await requestPermission();
       if (!result.granted) {
-        Alert.alert(
-          "Autorisation requise",
-          "L'autorisation de prendre des photos est requise.",
-        );
+        Alert.alert("Autorisation requise", "Accès à la caméra refusé.");
         return;
       }
     }
@@ -71,57 +68,50 @@ export default function AddProductScreen() {
 
   const handleCapturePhoto = async () => {
     if (!cameraRef.current) return;
-
     try {
       const photo = await cameraRef.current.takePictureAsync();
       if (photo?.uri) {
         const imagesDir = new Directory(Paths.document, "product-images");
-        if (!imagesDir.exists) {
-          imagesDir.create({ intermediates: true });
-        }
-
-        const filename = `product-${Date.now()}.jpg`;
-        const destination = new File(imagesDir, filename);
-        const sourceFile = new File(photo.uri);
-        sourceFile.copy(destination);
-
-        setImageUri(destination.uri);
+        if (!imagesDir.exists) imagesDir.create({ intermediates: true });
+        const dest = new File(imagesDir, `product-${Date.now()}.jpg`);
+        new File(photo.uri).copy(dest);
+        setImageUri(dest.uri);
       }
       setShowCamera(false);
-    } catch (error) {
-      console.error("Erreur lors de la prise de la photo:", error);
-      Alert.alert("Error", "Impossible de prendre la photo");
+    } catch {
+      Alert.alert("Erreur", "Impossible de prendre la photo");
     }
   };
 
+  // ── Galerie ──────────────────────────────────────────────────────────
   const handlePickImage = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ["images"],
       allowsEditing: true,
-      aspect: [4, 3],
-      quality: 0.8,
+      quality: 0.85,
     });
-
     if (!result.canceled && result.assets[0]) {
       try {
         const imagesDir = new Directory(Paths.document, "product-images");
-        if (!imagesDir.exists) {
-          imagesDir.create({ intermediates: true });
-        }
-
-        const filename = `product-${Date.now()}.jpg`;
-        const destination = new File(imagesDir, filename);
-        const sourceFile = new File(result.assets[0].uri);
-        sourceFile.copy(destination);
-
-        setImageUri(destination.uri);
-      } catch (error) {
-        console.error("Erreur lors de l'enregistrement de l'image:", error);
+        if (!imagesDir.exists) imagesDir.create({ intermediates: true });
+        const dest = new File(imagesDir, `product-${Date.now()}.jpg`);
+        new File(result.assets[0].uri).copy(dest);
+        setImageUri(dest.uri);
+      } catch {
         Alert.alert("Erreur", "Impossible d'enregistrer l'image");
       }
     }
   };
 
+  const handleImageOptions = () => {
+    Alert.alert("Photo du produit", "Choisissez une source", [
+      { text: "Caméra", onPress: handleTakePhoto },
+      { text: "Galerie", onPress: handlePickImage },
+      { text: "Annuler", style: "cancel" },
+    ]);
+  };
+
+  // ── Submit ───────────────────────────────────────────────────────────
   const onSubmit = async (data: ProductForm) => {
     try {
       const product: NewProduct = {
@@ -136,46 +126,42 @@ export default function AddProductScreen() {
         stockUpdatedAt: new Date().toISOString(),
         imageUri,
       };
-
       await addProduct(product);
       router.back();
-    } catch (error) {
-      console.error("Error adding product:", error);
+    } catch {
       Alert.alert("Erreur", "Impossible d'ajouter le produit");
     }
   };
 
   const styles = createStyles(colors);
 
+  // ── Vue caméra plein écran ───────────────────────────────────────────
   if (showCamera) {
     return (
-      <KeyboardAvoidingView
-        style={{ flex: 1 }}
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
-      >
-        <View style={styles.cameraContainer}>
-          <CameraView ref={cameraRef} style={styles.camera} facing="back">
-            <View style={styles.cameraControls}>
-              <Pressable
-                style={styles.cameraButton}
-                onPress={() => setShowCamera(false)}
-              >
-                <X size={24} color={colors.textInverse} />
-              </Pressable>
-              <Pressable
-                style={styles.captureButton}
-                onPress={handleCapturePhoto}
-              >
-                <View style={styles.captureButtonInner} />
-              </Pressable>
-              <View style={styles.cameraButton} />
-            </View>
-          </CameraView>
-        </View>
-      </KeyboardAvoidingView>
+      <View style={styles.cameraContainer}>
+        <CameraView ref={cameraRef} style={styles.camera} facing="back">
+          {/* Contrôles */}
+          <View style={styles.cameraControls}>
+            <Pressable
+              style={styles.cameraButton}
+              onPress={() => setShowCamera(false)}
+            >
+              <X size={24} color="#fff" />
+            </Pressable>
+            <Pressable
+              style={styles.captureButton}
+              onPress={handleCapturePhoto}
+            >
+              <View style={styles.captureButtonInner} />
+            </Pressable>
+            <View style={styles.cameraButton} />
+          </View>
+        </CameraView>
+      </View>
     );
   }
 
+  // ── Formulaire ───────────────────────────────────────────────────────
   return (
     <KeyboardAvoidingView
       style={styles.container}
@@ -183,37 +169,41 @@ export default function AddProductScreen() {
       keyboardVerticalOffset={150}
     >
       <ScrollView contentContainerStyle={styles.scrollContent}>
-        <View style={styles.imageSection}>
+        {/* Section image */}
+        <Pressable style={styles.imageArea} onPress={handleImageOptions}>
           {imageUri ? (
-            <View>
-              <Image source={{ uri: imageUri }} style={styles.productImage} />
+            <>
+              <Image
+                source={{ uri: imageUri }}
+                style={styles.imagePreview}
+                contentFit="cover"
+              />
               <Pressable
                 style={styles.removeImageButton}
                 onPress={() => setImageUri(undefined)}
+                hitSlop={8}
               >
-                <X size={16} color={colors.textInverse} />
+                <X size={15} color="#fff" />
               </Pressable>
-            </View>
+              <View style={styles.imageEditBadge}>
+                <Camera size={13} color="#fff" />
+                <Text style={styles.imageEditText}>Modifier</Text>
+              </View>
+            </>
           ) : (
             <View style={styles.imagePlaceholder}>
-              <ImageIcon size={40} color={colors.textMuted} />
-              <Text style={styles.imagePlaceholderText}>Aucune image</Text>
+              <View style={styles.imagePlaceholderIcon}>
+                <Camera size={30} color={colors.primary} />
+              </View>
+              <Text style={styles.imagePlaceholderTitle}>
+                Ajouter une photo
+              </Text>
+              <Text style={styles.imagePlaceholderSub}>Caméra · Galerie</Text>
             </View>
           )}
+        </Pressable>
 
-          <View style={styles.imageButtons}>
-            <Pressable style={styles.imageButton} onPress={handleTakePhoto}>
-              <Camera size={20} color={colors.primary} />
-              <Text style={styles.imageButtonText}>Caméra</Text>
-            </Pressable>
-
-            <Pressable style={styles.imageButton} onPress={handlePickImage}>
-              <ImageIcon size={20} color={colors.primary} />
-              <Text style={styles.imageButtonText}>Galerie</Text>
-            </Pressable>
-          </View>
-        </View>
-
+        {/* Formulaire */}
         <View style={styles.form}>
           <Controller
             control={control}
@@ -226,7 +216,7 @@ export default function AddProductScreen() {
                   onChangeText={field.onChange}
                   onBlur={field.onBlur}
                   style={styles.input}
-                  placeholder="Ex: Samsung A54"
+                  placeholder="Ex: Samsung Galaxy A54"
                   placeholderTextColor={colors.inputPlaceholder}
                 />
                 {errors.name && (
@@ -236,55 +226,14 @@ export default function AddProductScreen() {
             )}
           />
 
-          <View style={styles.inputGroup}>
-            <Controller
-              control={control}
-              name="brand"
-              render={({ field, fieldState }) => (
-                <DropdownSelect
-                  label="Marque *"
-                  labelStyle={styles.label}
-                  dropdownStyle={styles.inputSelect}
-                  placeholderStyle={styles.inputPlaceholder}
-                  placeholder="Sélectionnez une marque"
-                  selectedValue={field.value}
-                  onValueChange={(value) => setValue("brand", value as any)}
-                  options={PRODUCT_BRANDS.map((b) => ({
-                    label: b,
-                    value: b,
-                  }))}
-                />
-              )}
-            />
-            {errors.brand && (
-              <Text style={styles.error}>{errors.brand.message}</Text>
-            )}
-          </View>
-
-          {/* <View style={styles.inputGroup}>
-            <Controller
-              control={control}
-              name="category"
-              render={({ field, fieldState }) => (
-                <DropdownSelect
-                  label="Catégorie *"
-                  labelStyle={styles.label}
-                  dropdownStyle={styles.inputSelect}
-                  placeholderStyle={styles.inputPlaceholder}
-                  placeholder="Sélectionnez une catégorie"
-                  selectedValue={field.value}
-                  onValueChange={(value) => setValue("category", value as any)}
-                  options={PRODUCT_CATEGORIES.map((c) => ({
-                    label: c,
-                    value: c,
-                  }))}
-                />
-              )}
-            />
-            {errors.category && (
-              <Text style={styles.error}>{errors.category.message}</Text>
-            )}
-          </View> */}
+          <SearchPickerModal
+            label="Marque *"
+            placeholder="Sélectionnez une marque"
+            value={brandValue}
+            options={[...PRODUCT_BRANDS]}
+            onSelect={(val) => setValue("brand", val as any)}
+            error={errors.brand?.message}
+          />
 
           <View style={styles.row}>
             <Controller
@@ -308,7 +257,6 @@ export default function AddProductScreen() {
                 </View>
               )}
             />
-
             <Controller
               control={control}
               name="quantity"
@@ -346,7 +294,7 @@ export default function AddProductScreen() {
                   placeholder="Description du produit"
                   placeholderTextColor={colors.inputPlaceholder}
                   multiline
-                  numberOfLines={5}
+                  numberOfLines={4}
                 />
               </View>
             )}
@@ -354,13 +302,9 @@ export default function AddProductScreen() {
         </View>
       </ScrollView>
 
-      <View style={[styles.footer]}>
+      <View style={styles.footer}>
         <Pressable
-          style={[
-            styles.button,
-            styles.saveButton,
-            productAdding && styles.buttonDisabled,
-          ]}
+          style={[styles.saveButton, productAdding && styles.buttonDisabled]}
           onPress={handleSubmit(onSubmit)}
           disabled={productAdding}
         >
@@ -384,7 +328,77 @@ const createStyles = (colors: ThemeColors) =>
       flex: 1,
       backgroundColor: colors.background,
     },
-    scrollContent: {},
+    scrollContent: {
+      paddingBottom: 20,
+    },
+
+    // ── Section image ──
+    imageArea: {
+      width: "100%",
+      aspectRatio: 4 / 3,
+      backgroundColor: colors.surfaceElevated,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.border,
+      overflow: "hidden",
+    },
+    imagePreview: {
+      width: "100%",
+      height: "100%",
+    },
+    removeImageButton: {
+      position: "absolute",
+      top: 12,
+      right: 12,
+      backgroundColor: colors.danger,
+      width: 30,
+      height: 30,
+      borderRadius: 15,
+      justifyContent: "center",
+      alignItems: "center",
+    },
+    imageEditBadge: {
+      position: "absolute",
+      bottom: 12,
+      right: 12,
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 5,
+      backgroundColor: "rgba(0,0,0,0.55)",
+      paddingHorizontal: 10,
+      paddingVertical: 5,
+      borderRadius: 20,
+    },
+    imageEditText: {
+      color: "#fff",
+      fontSize: 12,
+      fontWeight: "600",
+    },
+    imagePlaceholder: {
+      flex: 1,
+      justifyContent: "center",
+      alignItems: "center",
+      gap: 8,
+    },
+    imagePlaceholderIcon: {
+      width: 64,
+      height: 64,
+      borderRadius: 20,
+      backgroundColor: colors.primary + "1A",
+      justifyContent: "center",
+      alignItems: "center",
+      marginBottom: 4,
+    },
+    imagePlaceholderTitle: {
+      fontSize: 15,
+      fontWeight: "600",
+      color: colors.textSecondary,
+    },
+    imagePlaceholderSub: {
+      fontSize: 13,
+      color: colors.textMuted,
+    },
+
+    // ── Caméra ──
     cameraContainer: {
       flex: 1,
       backgroundColor: "#000",
@@ -393,90 +407,39 @@ const createStyles = (colors: ThemeColors) =>
       flex: 1,
     },
     cameraControls: {
-      position: "absolute" as const,
-      bottom: 40,
+      position: "absolute",
+      bottom: 48,
       left: 0,
       right: 0,
-      flexDirection: "row" as const,
-      justifyContent: "space-between" as const,
-      alignItems: "center" as const,
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "center",
       paddingHorizontal: 40,
     },
     cameraButton: {
-      width: 60,
-      height: 60,
-      justifyContent: "center" as const,
-      alignItems: "center" as const,
+      width: 56,
+      height: 56,
+      justifyContent: "center",
+      alignItems: "center",
     },
     captureButton: {
-      width: 80,
-      height: 80,
-      borderRadius: 40,
-      backgroundColor: colors.surface,
-      justifyContent: "center" as const,
-      alignItems: "center" as const,
-      borderWidth: 4,
-      borderColor: "rgba(255, 255, 255, 0.3)",
+      width: 76,
+      height: 76,
+      borderRadius: 38,
+      backgroundColor: "rgba(255,255,255,0.25)",
+      justifyContent: "center",
+      alignItems: "center",
+      borderWidth: 3,
+      borderColor: "rgba(255,255,255,0.6)",
     },
     captureButtonInner: {
-      width: 68,
-      height: 68,
-      borderRadius: 34,
-      backgroundColor: colors.surface,
+      width: 60,
+      height: 60,
+      borderRadius: 30,
+      backgroundColor: "#fff",
     },
-    imageSection: {
-      backgroundColor: colors.surface,
-      padding: 20,
-      alignItems: "center" as const,
-    },
-    productImage: {
-      width: 200,
-      height: 200,
-      borderRadius: 12,
-    },
-    removeImageButton: {
-      position: "absolute" as const,
-      top: 8,
-      right: 8,
-      backgroundColor: colors.danger,
-      width: 28,
-      height: 28,
-      borderRadius: 14,
-      justifyContent: "center" as const,
-      alignItems: "center" as const,
-    },
-    imagePlaceholder: {
-      width: 200,
-      height: 200,
-      backgroundColor: colors.inputBackground,
-      borderRadius: 12,
-      justifyContent: "center" as const,
-      alignItems: "center" as const,
-      gap: 8,
-    },
-    imagePlaceholderText: {
-      fontSize: 14,
-      color: colors.textMuted,
-    },
-    imageButtons: {
-      flexDirection: "row" as const,
-      gap: 12,
-      marginTop: 16,
-    },
-    imageButton: {
-      flexDirection: "row" as const,
-      alignItems: "center" as const,
-      gap: 8,
-      paddingHorizontal: 20,
-      paddingVertical: 10,
-      backgroundColor: colors.inputBackground,
-      borderRadius: 8,
-    },
-    imageButtonText: {
-      fontSize: 16,
-      fontWeight: "600" as const,
-      color: colors.primary,
-    },
+
+    // ── Formulaire ──
     form: {
       padding: 20,
       gap: 20,
@@ -486,71 +449,58 @@ const createStyles = (colors: ThemeColors) =>
     },
     label: {
       fontSize: 15,
-      fontWeight: "600" as const,
+      fontWeight: "600",
       color: colors.text,
     },
     input: {
       backgroundColor: colors.inputBackground,
       borderRadius: 10,
       paddingHorizontal: 16,
-      paddingVertical: 20,
+      paddingVertical: 16,
       fontSize: 16,
       color: colors.inputText,
       borderWidth: 1,
       borderColor: colors.inputBorder,
-    },
-    inputSelect: {
-      backgroundColor: colors.inputBackground,
-      borderRadius: 10,
-      paddingHorizontal: 16,
-      paddingVertical: 14,
-      fontSize: 16,
-      color: colors.inputText,
-      borderWidth: 1,
-      borderColor: colors.inputBorder,
-    },
-    inputPlaceholder: {
-      fontSize: 16,
-      color: colors.inputPlaceholder,
     },
     textArea: {
       height: 100,
       paddingTop: 14,
+      textAlignVertical: "top",
     },
     row: {
-      flexDirection: "row" as const,
+      flexDirection: "row",
       gap: 12,
     },
     flex1: {
       flex: 1,
     },
+    error: {
+      fontSize: 13,
+      color: colors.danger,
+    },
+
+    // ── Footer ──
     footer: {
-      padding: 20,
+      padding: 16,
       backgroundColor: colors.surface,
       borderTopWidth: 1,
       borderTopColor: colors.border,
     },
-    button: {
-      flexDirection: "row" as const,
-      alignItems: "center" as const,
-      justifyContent: "center" as const,
+    saveButton: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "center",
+      backgroundColor: colors.primary,
       paddingVertical: 16,
-      borderRadius: 12,
+      borderRadius: 14,
       gap: 8,
     },
-    saveButton: {
-      backgroundColor: colors.primary,
-    },
     saveButtonText: {
-      fontSize: 17,
-      fontWeight: "600" as const,
+      fontSize: 16,
+      fontWeight: "700",
       color: colors.textInverse,
     },
     buttonDisabled: {
       opacity: 0.6,
-    },
-    error: {
-      fontSize: 14,
-      color: colors.danger,
     },
   });

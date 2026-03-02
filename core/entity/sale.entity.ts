@@ -1,7 +1,8 @@
 import { AccessoryCategory } from "./accessory.entity";
 import { ProductCategory } from "./product.entity";
+import { SyncMeta } from "@/core/types/sync.types";
 
-export interface Sale {
+export interface Sale extends SyncMeta {
   id: number;
   sellerId: number;
   productId?: number;
@@ -14,10 +15,12 @@ export interface Sale {
   rom?: number;
   apn?: number;
   attachmentUri?: string;
+  buyerName?: string;
+  buyerCin?: string;
   createdAt: string;
 }
 
-export type NewSale = Omit<Sale, "id">;
+export type NewSale = Omit<Sale, "id" | "syncId" | "syncStatus" | "syncedAt">;
 export const SALE_QUERY_KEY = "sale";
 
 export interface SellableItem {

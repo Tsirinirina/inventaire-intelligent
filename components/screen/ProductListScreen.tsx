@@ -3,9 +3,17 @@ import { useProduct } from "@/core/contexts/ProductContext";
 import { Product } from "@/core/entity/product.entity";
 import { formatAriary } from "@/core/utils/currency.utils";
 import { useTheme } from "@/theme/ThemeProvider";
+import { ThemeColors } from "@/theme/colors";
 import { Image } from "expo-image";
 import { useRouter } from "expo-router";
-import { AlertCircle, Plus, Search, X } from "lucide-react-native";
+import {
+  AlertTriangle,
+  ChevronRight,
+  Package,
+  Plus,
+  Search,
+  X,
+} from "lucide-react-native";
 import { useMemo, useState } from "react";
 import {
   ActivityIndicator,
@@ -19,479 +27,345 @@ import {
   View,
 } from "react-native";
 
+function StockBadge({
+  quantity,
+  colors,
+}: {
+  quantity: number;
+  colors: ThemeColors;
+}) {
+  const bg =
+    quantity === 0
+      ? colors.danger
+      : quantity <= 5
+        ? colors.warning
+        : colors.success;
+  const label =
+    quantity === 0 ? "Rupture" : quantity <= 5 ? `Faible · ${quantity}` : `${quantity}`;
+  return (
+    <View style={{ backgroundColor: bg + "22", borderRadius: 8, paddingHorizontal: 8, paddingVertical: 3 }}>
+      <Text style={{ color: bg, fontSize: 12, fontWeight: "700" }}>{label}</Text>
+    </View>
+  );
+}
+
 export default function ProductsListScreen() {
   const router = useRouter();
   const { colors } = useTheme();
-  const {
-    products,
-    productsLoading,
-    productsError,
-    productsRefetch,
-    addProduct,
-    deleteProduct,
-  } = useProduct();
-
-  const [searchQuery, setSearchQuery] = useState<string>("");
-  const [selectedBrand, setSelectedBrand] = useState<string | null>(null);
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
-
   const styles = useMemo(() => createStyles(colors), [colors]);
 
-  const filteredProducts = useMemo(() => {
-    return products.filter((product) => {
-      const matchesSearch =
-        product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        product.brand.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        product.description?.toLowerCase().includes(searchQuery.toLowerCase());
+  const { products, productsLoading, deleteProduct } = useProduct();
 
-      const matchesBrand = !selectedBrand || product.brand === selectedBrand;
-      const matchesCategory =
-        !selectedCategory || product.category === selectedCategory;
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedBrand, setSelectedBrand] = useState<string | null>(null);
 
-      return matchesSearch && matchesBrand && matchesCategory;
+  const filtered = useMemo(() => {
+    return products.filter((p) => {
+      const q = searchQuery.toLowerCase();
+      const matchSearch =
+        p.name.toLowerCase().includes(q) ||
+        p.brand.toLowerCase().includes(q) ||
+        (p.description?.toLowerCase().includes(q) ?? false);
+      const matchBrand = !selectedBrand || p.brand === selectedBrand;
+      return matchSearch && matchBrand;
     });
-  }, [products, searchQuery, selectedBrand, selectedCategory]);
+  }, [products, searchQuery, selectedBrand]);
 
-  const handleDeleteProduct = (id: number, name: string) => {
-    Alert.alert(
-      "Supprimer le produit",
-      `Êtes-vous sûr de vouloir supprimer "${name}"?`,
-      [
-        { text: "Annuler", style: "cancel" },
-        {
-          text: "Supprimer",
-          style: "destructive",
-          onPress: async () => {
-            try {
-              await deleteProduct(id);
-            } catch (error) {
-              Alert.alert("Error", "Échec de la suppression du produit");
-              console.error("Erreur de suppression:", error);
-            }
-          },
+  const handleDelete = (id: number, name: string) => {
+    Alert.alert("Supprimer", `Supprimer "${name}" ?`, [
+      { text: "Annuler", style: "cancel" },
+      {
+        text: "Supprimer",
+        style: "destructive",
+        onPress: async () => {
+          try {
+            await deleteProduct(id);
+          } catch {
+            Alert.alert("Erreur", "Échec de la suppression");
+          }
         },
-      ],
-    );
+      },
+    ]);
   };
 
-  const renderProduct = ({ item }: { item: Product }) => (
+  const renderItem = ({ item }: { item: Product }) => (
     <Pressable
-      style={styles.productCard}
-      onPress={() =>
-        router.push(`/(tabs)/stock/product/edit/${item.id}` as any)
-      }
-      onLongPress={() => handleDeleteProduct(item.id, item.name)}
+      style={styles.card}
+      onPress={() => router.push(`/(tabs)/stock/product/edit/${item.id}` as any)}
+      onLongPress={() => handleDelete(item.id, item.name)}
     >
-      <View style={styles.productImageContainer}>
+      {/* Image */}
+      <View style={styles.imageWrap}>
         {item.imageUri ? (
-          <Image
-            source={{ uri: item.imageUri }}
-            style={styles.productImage}
-            contentFit="cover"
-          />
+          <Image source={{ uri: item.imageUri }} style={styles.image} contentFit="cover" />
         ) : (
-          <View style={styles.productImagePlaceholder}>
-            <Text style={styles.placeholderText}>Aucune image</Text>
-          </View>
-        )}
-        {item.quantity <= 5 && (
-          <View style={styles.lowStockBadge}>
-            <AlertCircle size={12} color={colors.textInverse} />
-            <Text style={styles.lowStockText}>Faible</Text>
-          </View>
-        )}
-        {item.category && (
-          <View style={styles.categoryBadge}>
-            <Text style={styles.categoryBadgeText}>{item.category}</Text>
+          <View style={[styles.image, styles.imagePlaceholder]}>
+            <Package size={22} color={colors.textMuted} />
           </View>
         )}
       </View>
-      <View style={styles.productInfo}>
-        <Text style={styles.productName} numberOfLines={1}>
-          {item.name}
+
+      {/* Infos */}
+      <View style={styles.cardBody}>
+        <Text style={styles.cardName} numberOfLines={1}>{item.name}</Text>
+        <Text style={styles.cardSub} numberOfLines={1}>
+          {item.brand} · {item.category}
         </Text>
-        <Text style={styles.productBrand} numberOfLines={1}>
-          {item.brand}
-        </Text>
-        <View style={styles.productDetails}>
-          <Text style={styles.productPrice}>
-            {formatAriary(item.basePrice)}
-          </Text>
-          <Text style={styles.productQuantity}>Stock: {item.quantity}</Text>
+        <View style={styles.cardBottom}>
+          <Text style={styles.cardPrice}>{formatAriary(item.basePrice)}</Text>
+          <StockBadge quantity={item.quantity} colors={colors} />
         </View>
       </View>
+
+      {/* Chevron */}
+      <ChevronRight size={18} color={colors.textMuted} />
     </Pressable>
   );
 
+  const usedBrands = useMemo(
+    () => [...new Set(products.map((p) => p.brand))].slice(0, 20),
+    [products],
+  );
+
   return (
-    <View style={{ flex: 1 }}>
-      <View style={styles.searchContainer}>
-        <View style={styles.searchInputWrapper}>
-          <Search
-            size={20}
-            color={colors.textMuted}
-            style={styles.searchIcon}
-          />
+    <View style={styles.container}>
+      {/* Barre de recherche */}
+      <View style={styles.searchWrap}>
+        <View style={styles.searchBar}>
+          <Search size={18} color={colors.textMuted} />
           <TextInput
             style={styles.searchInput}
-            placeholder="Rechercher des produits..."
+            placeholder="Rechercher un produit..."
+            placeholderTextColor={colors.inputPlaceholder}
             value={searchQuery}
             onChangeText={setSearchQuery}
-            placeholderTextColor={colors.inputPlaceholder}
           />
           {searchQuery.length > 0 && (
-            <Pressable
-              onPress={() => setSearchQuery("")}
-              style={styles.clearButton}
-            >
-              <X size={20} color={colors.textMuted} />
+            <Pressable onPress={() => setSearchQuery("")}>
+              <X size={18} color={colors.textMuted} />
             </Pressable>
           )}
         </View>
       </View>
 
-      {/* FILTER  */}
-      <View style={styles.filterContainer}>
-        <Text style={styles.filterTitle}>Marques des produits</Text>
+      {/* Résumé + filtres marques */}
+      <View style={styles.filtersWrap}>
+        <Text style={styles.countLabel}>
+          {filtered.length} produit{filtered.length !== 1 ? "s" : ""}
+          {products.length !== filtered.length ? ` sur ${products.length}` : ""}
+        </Text>
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
-          style={styles.brandFilterContainer}
-          contentContainerStyle={styles.brandFilterContent}
+          contentContainerStyle={styles.chipRow}
         >
           <Pressable
-            style={[
-              styles.brandChipAll,
-              !selectedBrand && styles.brandChipActive,
-            ]}
+            style={[styles.chip, !selectedBrand && styles.chipActive]}
             onPress={() => setSelectedBrand(null)}
           >
-            <Text
-              style={[
-                styles.brandChipText,
-                !selectedBrand && styles.brandChipTextActive,
-              ]}
-            >
+            <Text style={[styles.chipText, !selectedBrand && styles.chipTextActive]}>
               Tout
             </Text>
           </Pressable>
-          {PRODUCT_BRANDS.map((brand) => (
+          {usedBrands.map((b) => (
             <Pressable
-              key={brand}
-              style={[
-                styles.brandChip,
-                selectedBrand === brand && styles.brandChipActive,
-              ]}
-              onPress={() => setSelectedBrand(brand)}
+              key={b}
+              style={[styles.chip, selectedBrand === b && styles.chipActive]}
+              onPress={() => setSelectedBrand(b)}
             >
               <Text
-                style={[
-                  styles.brandChipText,
-                  selectedBrand === brand && styles.brandChipTextActive,
-                ]}
+                style={[styles.chipText, selectedBrand === b && styles.chipTextActive]}
               >
-                {brand}
+                {b}
               </Text>
             </Pressable>
           ))}
         </ScrollView>
       </View>
 
-      {/* FILTER  */}
-      {/* <View style={styles.filterContainer}>
-        <Text style={styles.filterTitle}>Catégories des produits</Text>
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          style={styles.brandFilterContainer}
-          contentContainerStyle={styles.brandFilterContent}
-        >
-          <Pressable
-            style={[
-              styles.brandChipAll,
-              !selectedCategory && styles.brandChipActive,
-            ]}
-            onPress={() => setSelectedCategory(null)}
-          >
-            <Text
-              style={[
-                styles.brandChipText,
-                !selectedCategory && styles.brandChipTextActive,
-              ]}
-            >
-              Tout
-            </Text>
-          </Pressable>
-          {PRODUCT_CATEGORIES.map((cat) => (
-            <Pressable
-              key={cat}
-              style={[
-                styles.brandChip,
-                selectedCategory === cat && styles.brandChipActive,
-              ]}
-              onPress={() => setSelectedCategory(cat)}
-            >
-              <Text
-                style={[
-                  styles.brandChipText,
-                  selectedCategory === cat && styles.brandChipTextActive,
-                ]}
-              >
-                {cat}
-              </Text>
-            </Pressable>
-          ))}
-        </ScrollView>
-      </View> */}
-
+      {/* Liste */}
       {productsLoading ? (
-        <View style={styles.loadingContainer}>
+        <View style={styles.center}>
           <ActivityIndicator size="large" color={colors.primary} />
         </View>
-      ) : filteredProducts.length === 0 ? (
-        <View style={styles.emptyContainer}>
-          <Text style={styles.emptyText}>
-            {products.length === 0
-              ? "Aucun produit pour l'instant"
-              : "Aucun produit trouvé"}
+      ) : filtered.length === 0 ? (
+        <View style={styles.center}>
+          <AlertTriangle size={40} color={colors.textMuted} />
+          <Text style={styles.emptyTitle}>
+            {products.length === 0 ? "Aucun produit" : "Aucun résultat"}
           </Text>
-          {products.length === 0 && (
-            <Text style={styles.emptySubtext}>
-              Appuyez sur + pour ajouter votre premier produit
-            </Text>
-          )}
+          <Text style={styles.emptySub}>
+            {products.length === 0
+              ? "Appuyez sur + pour ajouter un produit"
+              : "Essayez un autre filtre"}
+          </Text>
         </View>
       ) : (
         <FlatList
-          data={filteredProducts}
-          renderItem={renderProduct}
+          data={filtered}
           keyExtractor={(item) => item.id.toString()}
-          numColumns={2}
-          contentContainerStyle={styles.productList}
+          renderItem={renderItem}
+          contentContainerStyle={styles.list}
           showsVerticalScrollIndicator={false}
         />
       )}
 
+      {/* FAB */}
       <Pressable
         style={styles.fab}
         onPress={() => router.push("/(tabs)/stock/product/add")}
       >
-        <Plus size={28} color={colors.textInverse} />
+        <Plus size={26} color={colors.textInverse} />
       </Pressable>
     </View>
   );
 }
 
-const createStyles = (colors: ReturnType<typeof useTheme>["colors"]) =>
+const createStyles = (colors: ThemeColors) =>
   StyleSheet.create({
     container: {
       flex: 1,
+      backgroundColor: colors.background,
     },
-    searchContainer: {
+    searchWrap: {
+      paddingHorizontal: 16,
       paddingTop: 12,
       paddingBottom: 8,
-      backgroundColor: colors.surface,
     },
-    searchInputWrapper: {
+    searchBar: {
       flexDirection: "row",
       alignItems: "center",
-      backgroundColor: colors.inputBackground,
-      borderRadius: 12,
-      paddingHorizontal: 12,
+      backgroundColor: colors.surface,
+      borderRadius: 14,
+      paddingHorizontal: 14,
+      paddingVertical: 10,
+      gap: 10,
       borderWidth: 1,
-      borderColor: colors.inputBorder,
-    },
-    searchIcon: {
-      marginRight: 8,
+      borderColor: colors.border,
     },
     searchInput: {
       flex: 1,
-      height: 44,
-      fontSize: 16,
+      fontSize: 15,
       color: colors.inputText,
     },
-    clearButton: {
-      padding: 4,
-    },
-    filterContainer: {
-      minHeight: 70,
-      maxHeight: 70,
-    },
-    filterTitle: {
-      fontSize: 18,
-      fontWeight: "600",
-      color: colors.text,
-      paddingLeft: 14,
-    },
-    brandFilterContainer: {
-      paddingVertical: 10,
-    },
-    brandFilterContent: {
-      gap: 8,
-      height: "auto",
-    },
-    brandChip: {
-      display: "flex",
-      justifyContent: "center",
-      alignItems: "center",
+    filtersWrap: {
       paddingHorizontal: 16,
+      paddingBottom: 8,
+      gap: 6,
+    },
+    countLabel: {
+      fontSize: 12,
+      color: colors.textMuted,
+      fontWeight: "500",
+    },
+    chipRow: {
+      flexDirection: "row",
+      gap: 6,
+    },
+    chip: {
+      paddingHorizontal: 14,
+      paddingVertical: 6,
       borderRadius: 20,
       backgroundColor: colors.surfaceElevated,
       borderWidth: 1,
       borderColor: colors.border,
     },
-    brandChipAll: {
-      display: "flex",
-      justifyContent: "center",
-      alignItems: "center",
-      paddingHorizontal: 16,
-      borderRadius: 20,
-      backgroundColor: colors.success,
-    },
-    brandChipActive: {
+    chipActive: {
       backgroundColor: colors.primary,
       borderColor: colors.primary,
     },
-    brandChipText: {
-      fontSize: 16,
-      fontWeight: "800",
-      color: colors.textSecondary,
-    },
-    brandChipTextActive: {
-      color: colors.textInverse,
-    },
-    loadingContainer: {
-      flex: 1,
-      justifyContent: "center",
-      alignItems: "center",
-    },
-    emptyContainer: {
-      flex: 1,
-      justifyContent: "center",
-      alignItems: "center",
-      paddingHorizontal: 40,
-    },
-    emptyText: {
-      fontSize: 20,
+    chipText: {
+      fontSize: 13,
       fontWeight: "600",
       color: colors.textSecondary,
-      marginBottom: 8,
     },
-    emptySubtext: {
-      fontSize: 16,
-      color: colors.textMuted,
-      textAlign: "center",
+    chipTextActive: {
+      color: colors.textInverse,
     },
-    productList: { gap: 4 },
-    productCard: {
-      flex: 1,
+    list: {
+      paddingHorizontal: 16,
+      paddingBottom: 100,
+      gap: 10,
+    },
+    card: {
+      flexDirection: "row",
+      alignItems: "center",
       backgroundColor: colors.surface,
-      borderRadius: 12,
-      margin: 4,
-      overflow: "hidden",
-      shadowColor: colors.shadow,
-      shadowOffset: { width: 0, height: 4 },
-      shadowOpacity: 0.15,
-      shadowRadius: 8,
-      elevation: 3,
+      borderRadius: 16,
       borderWidth: 1,
       borderColor: colors.border,
+      padding: 12,
+      gap: 12,
     },
-    productImageContainer: {
-      position: "relative",
+    imageWrap: {
+      borderRadius: 12,
+      overflow: "hidden",
     },
-    productImage: {
-      width: "100%",
-      height: 140,
+    image: {
+      width: 60,
+      height: 60,
+      borderRadius: 12,
     },
-    productImagePlaceholder: {
-      width: "100%",
-      height: 140,
-      backgroundColor: colors.inputBackground,
+    imagePlaceholder: {
+      backgroundColor: colors.surfaceElevated,
       justifyContent: "center",
       alignItems: "center",
     },
-    placeholderText: {
+    cardBody: {
+      flex: 1,
+      gap: 4,
+    },
+    cardName: {
+      fontSize: 15,
+      fontWeight: "700",
+      color: colors.text,
+    },
+    cardSub: {
+      fontSize: 12,
       color: colors.textMuted,
-      fontSize: 14,
     },
-    lowStockBadge: {
-      position: "absolute",
-      top: 8,
-      right: 8,
+    cardBottom: {
       flexDirection: "row",
       alignItems: "center",
-      backgroundColor: colors.danger,
-      paddingHorizontal: 8,
-      paddingVertical: 4,
-      borderRadius: 12,
-      gap: 4,
-    },
-    lowStockText: {
-      color: colors.textInverse,
-      fontSize: 12,
-      fontWeight: "600",
-    },
-    categoryBadge: {
-      position: "absolute",
-      top: 8,
-      left: 8,
-      flexDirection: "row",
-      alignItems: "center",
-      backgroundColor: colors.surfaceElevated,
-      paddingHorizontal: 8,
-      paddingVertical: 4,
-      borderRadius: 12,
-      gap: 4,
-    },
-    categoryBadgeText: {
-      color: colors.text,
-      fontSize: 12,
-      fontWeight: "600",
-    },
-    productInfo: {
-      padding: 12,
-    },
-    productName: {
-      fontSize: 16,
-      fontWeight: "600",
-      color: colors.text,
-      marginBottom: 4,
-    },
-    productBrand: {
-      fontSize: 14,
-      color: colors.textSecondary,
-      marginBottom: 8,
-    },
-    productDetails: {
-      flexDirection: "row",
       justifyContent: "space-between",
-      alignItems: "center",
+      marginTop: 2,
     },
-    productPrice: {
-      fontSize: 18,
+    cardPrice: {
+      fontSize: 14,
       fontWeight: "700",
       color: colors.primary,
     },
-    productQuantity: {
-      fontSize: 16,
+    center: {
+      flex: 1,
+      justifyContent: "center",
+      alignItems: "center",
+      gap: 12,
+      padding: 32,
+    },
+    emptyTitle: {
+      fontSize: 18,
+      fontWeight: "700",
       color: colors.textSecondary,
-      fontWeight: "600",
+    },
+    emptySub: {
+      fontSize: 14,
+      color: colors.textMuted,
+      textAlign: "center",
     },
     fab: {
       position: "absolute",
       bottom: 24,
       right: 24,
-      width: 60,
-      height: 60,
-      borderRadius: 30,
+      width: 58,
+      height: 58,
+      borderRadius: 29,
       backgroundColor: colors.primary,
       justifyContent: "center",
       alignItems: "center",
-      shadowColor: colors.shadow,
-      shadowOffset: { width: 0, height: 4 },
-      shadowOpacity: 0.3,
-      shadowRadius: 8,
+      shadowColor: colors.primary,
+      shadowOffset: { width: 0, height: 6 },
+      shadowOpacity: 0.4,
+      shadowRadius: 10,
       elevation: 8,
     },
   });

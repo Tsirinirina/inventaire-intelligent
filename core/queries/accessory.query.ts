@@ -5,6 +5,7 @@ import {
   ACCESSORY_QUERY_KEY,
   NewAccessory,
 } from "../entity/accessory.entity";
+import { STOCK_MOVEMENT_QUERY_KEY } from "../entity/stock_movement.entity";
 import {
   addAccessory,
   deleteAccessory,
@@ -34,9 +35,8 @@ export function useAddAccessoryQuery(queryClient: QueryClient) {
       return addAccessory(db, dto);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: [ACCESSORY_QUERY_KEY],
-      });
+      queryClient.invalidateQueries({ queryKey: [ACCESSORY_QUERY_KEY] });
+      queryClient.invalidateQueries({ queryKey: [STOCK_MOVEMENT_QUERY_KEY] });
     },
   });
 }
@@ -51,9 +51,8 @@ export function useUpdateAccessoryQuery(queryClient: QueryClient) {
       return updateAccessory(db, dto);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: [ACCESSORY_QUERY_KEY],
-      });
+      queryClient.invalidateQueries({ queryKey: [ACCESSORY_QUERY_KEY] });
+      queryClient.invalidateQueries({ queryKey: [STOCK_MOVEMENT_QUERY_KEY] });
     },
   });
 }

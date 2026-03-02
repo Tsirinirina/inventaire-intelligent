@@ -92,10 +92,52 @@ export function initDatabase() {
       rom INTEGER,
       apn INTEGER,
       attachmentUri TEXT,
+      buyerName TEXT,
+      buyerCin TEXT,
       createdAt TEXT NOT NULL,
       FOREIGN KEY (sellerId) REFERENCES sellers(id),
       FOREIGN KEY (productId) REFERENCES products(id),
       FOREIGN KEY (accessoryId) REFERENCES accessories(id)
     );
   `);
+
+  /* =======================
+     STOCK MOVEMENTS
+  ======================== */
+  db.execSync(`
+    CREATE TABLE IF NOT EXISTS stock_movements (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      itemType TEXT NOT NULL,
+      itemId INTEGER NOT NULL,
+      itemName TEXT NOT NULL,
+      quantity INTEGER NOT NULL,
+      createdAt TEXT NOT NULL
+    );
+  `);
+
+  // Migrations : colonnes ajoutées après la création initiale de la DB
+  const migrations = [
+    // Buyer info
+    `ALTER TABLE sales ADD COLUMN buyerName TEXT`,
+    `ALTER TABLE sales ADD COLUMN buyerCin TEXT`,
+    // Sync meta — products
+    `ALTER TABLE products ADD COLUMN sync_id TEXT`,
+    `ALTER TABLE products ADD COLUMN sync_status TEXT DEFAULT 'pending'`,
+    `ALTER TABLE products ADD COLUMN synced_at TEXT`,
+    // Sync meta — accessories
+    `ALTER TABLE accessories ADD COLUMN sync_id TEXT`,
+    `ALTER TABLE accessories ADD COLUMN sync_status TEXT DEFAULT 'pending'`,
+    `ALTER TABLE accessories ADD COLUMN synced_at TEXT`,
+    // Sync meta — sales
+    `ALTER TABLE sales ADD COLUMN sync_id TEXT`,
+    `ALTER TABLE sales ADD COLUMN sync_status TEXT DEFAULT 'pending'`,
+    `ALTER TABLE sales ADD COLUMN synced_at TEXT`,
+  ];
+  for (const sql of migrations) {
+    try {
+      db.execSync(sql);
+    } catch {
+      // Colonne déjà existante — ignoré
+    }
+  }
 }

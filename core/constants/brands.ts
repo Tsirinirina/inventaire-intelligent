@@ -4,6 +4,7 @@ export const PRODUCT_BRANDS = [
   "Samsung",
   "Google",
   "Xiaomi",
+  "Redmi",
   "OnePlus",
   "Oppo",
   "Vivo",

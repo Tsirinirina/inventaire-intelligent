@@ -1,9 +1,10 @@
 import { useAuth } from "@/core/contexts/AuthContext";
 import { SellableItem } from "@/core/entity/sale.entity";
 import { CartItem, useCartStore } from "@/core/store/cart.store";
+import NumberScanner from "@/components/scanner/NumberScanner";
 import { useTheme } from "@/theme/ThemeProvider";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { CheckCircle } from "lucide-react-native";
+import { Check, CheckCircle, ScanLine } from "lucide-react-native";
 import React, { useMemo, useState } from "react";
 import {
   Alert,
@@ -14,6 +15,24 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+
+const RAM_VALUES = [1, 2, 3, 4, 6, 8, 12, 16] as const;
+const ROM_VALUES = [16, 32, 64, 128, 256, 512, 1024] as const;
+
+const PRESET_COLORS = [
+  { name: "Noir", hex: "#1C1C1E" },
+  { name: "Blanc", hex: "#F5F5F7" },
+  { name: "Argent", hex: "#B0B0B8" },
+  { name: "Gris", hex: "#636366" },
+  { name: "Or", hex: "#D4AF37" },
+  { name: "Bleu", hex: "#1A73E8" },
+  { name: "Marine", hex: "#1A237E" },
+  { name: "Rouge", hex: "#E53935" },
+  { name: "Rose", hex: "#EC407A" },
+  { name: "Vert", hex: "#43A047" },
+  { name: "Violet", hex: "#7B1FA2" },
+  { name: "Jaune", hex: "#FDD835" },
+] as const;
 
 export default function AddToCartScreen() {
   const router = useRouter();
@@ -29,8 +48,9 @@ export default function AddToCartScreen() {
   const [unitPrice, setUnitPrice] = useState(item.basePrice.toString());
   const [imei, setImei] = useState("");
   const [color, setColor] = useState("");
-  const [ram, setRam] = useState("");
-  const [rom, setRom] = useState("");
+  const [ram, setRam] = useState<number | null>(null);
+  const [rom, setRom] = useState<number | null>(null);
+  const [showScanner, setShowScanner] = useState(false);
 
   const isSmartphone = item.category === "smartphone";
   const qty = Number(quantity) || 0;
@@ -68,8 +88,8 @@ export default function AddToCartScreen() {
       unitPrice: price,
       imei: imei.trim() || undefined,
       color: color.trim() || undefined,
-      ram: ram ? Number(ram) : undefined,
-      rom: rom ? Number(rom) : undefined,
+      ram: ram ?? undefined,
+      rom: rom ?? undefined,
     };
 
     addItem(cartItem);
@@ -127,48 +147,117 @@ export default function AddToCartScreen() {
       {isSmartphone && (
         <>
           <Text style={styles.label}>IMEI *</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="15 chiffres"
-            placeholderTextColor={colors.textMuted}
-            keyboardType="numeric"
-            value={imei}
-            onChangeText={setImei}
-            maxLength={15}
-          />
+          <View style={styles.imeiRow}>
+            <TextInput
+              style={[styles.input, styles.imeiInput]}
+              placeholder="15 chiffres"
+              placeholderTextColor={colors.textMuted}
+              keyboardType="numeric"
+              value={imei}
+              onChangeText={setImei}
+              maxLength={15}
+            />
+            <TouchableOpacity
+              style={styles.scanBtn}
+              onPress={() => setShowScanner(true)}
+            >
+              <ScanLine size={22} color={colors.textInverse} />
+            </TouchableOpacity>
+          </View>
         </>
       )}
 
-      <Text style={styles.label}>Couleur</Text>
-      <TextInput
-        style={styles.input}
-        placeholder="Ex: Noir, Blanc..."
-        placeholderTextColor={colors.textMuted}
-        value={color}
-        onChangeText={setColor}
-      />
+      {showScanner && (
+        <NumberScanner
+          onScan={(value) => {
+            setImei(value.slice(0, 15));
+            setShowScanner(false);
+          }}
+          onClose={() => setShowScanner(false)}
+        />
+      )}
+
+      <View style={styles.colorLabelRow}>
+        <Text style={styles.label}>Couleur</Text>
+        {color ? (
+          <Text style={styles.colorSelected}>{color}</Text>
+        ) : (
+          <Text style={styles.colorNone}>Aucune</Text>
+        )}
+      </View>
+      <View style={styles.colorGrid}>
+        {PRESET_COLORS.map((c) => {
+          const isSelected = color === c.name;
+          const isLight = c.hex === "#F5F5F7" || c.hex === "#FDD835" || c.hex === "#D4AF37";
+          return (
+            <TouchableOpacity
+              key={c.name}
+              style={[
+                styles.colorSwatch,
+                { backgroundColor: c.hex },
+                isSelected && styles.colorSwatchSelected,
+              ]}
+              onPress={() => setColor(isSelected ? "" : c.name)}
+              activeOpacity={0.75}
+            >
+              {isSelected && (
+                <Check size={16} color={isLight ? "#000" : "#fff"} strokeWidth={3} />
+              )}
+            </TouchableOpacity>
+          );
+        })}
+      </View>
 
       {isSmartphone && (
         <>
-          <Text style={styles.label}>RAM (Go)</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="Ex: 8"
-            placeholderTextColor={colors.textMuted}
-            keyboardType="numeric"
-            value={ram}
-            onChangeText={setRam}
-          />
+          <View style={styles.chipLabelRow}>
+            <Text style={styles.label}>RAM (Go)</Text>
+            {ram !== null && <Text style={styles.chipLabelValue}>{ram} Go</Text>}
+          </View>
+          <View style={styles.chipRow}>
+            {RAM_VALUES.map((v) => {
+              const isSelected = ram === v;
+              return (
+                <TouchableOpacity
+                  key={v}
+                  style={[styles.chip, isSelected && styles.chipSelected]}
+                  onPress={() => setRam(isSelected ? null : v)}
+                  activeOpacity={0.75}
+                >
+                  <Text style={[styles.chipText, isSelected && styles.chipTextSelected]}>
+                    {v}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
 
-          <Text style={styles.label}>ROM (Go)</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="Ex: 128"
-            placeholderTextColor={colors.textMuted}
-            keyboardType="numeric"
-            value={rom}
-            onChangeText={setRom}
-          />
+          <View style={styles.chipLabelRow}>
+            <Text style={styles.label}>ROM (Go)</Text>
+            {rom !== null && (
+              <Text style={styles.chipLabelValue}>
+                {rom >= 1024 ? `${rom / 1024} To` : `${rom} Go`}
+              </Text>
+            )}
+          </View>
+          <View style={styles.chipRow}>
+            {ROM_VALUES.map((v) => {
+              const isSelected = rom === v;
+              const label = v >= 1024 ? `${v / 1024}To` : `${v}`;
+              return (
+                <TouchableOpacity
+                  key={v}
+                  style={[styles.chip, isSelected && styles.chipSelected]}
+                  onPress={() => setRom(isSelected ? null : v)}
+                  activeOpacity={0.75}
+                >
+                  <Text style={[styles.chipText, isSelected && styles.chipTextSelected]}>
+                    {label}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
         </>
       )}
 
@@ -256,6 +345,98 @@ const createStyles = (colors: ReturnType<typeof useTheme>["colors"]) =>
       color: colors.inputText,
       fontSize: 16,
       marginBottom: 14,
+    },
+    imeiRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 10,
+      marginBottom: 14,
+    },
+    imeiInput: {
+      flex: 1,
+      marginBottom: 0,
+    },
+    scanBtn: {
+      width: 52,
+      height: 52,
+      borderRadius: 12,
+      backgroundColor: colors.accent,
+      justifyContent: "center",
+      alignItems: "center",
+    },
+    chipLabelRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      marginBottom: 8,
+      marginTop: 4,
+    },
+    chipLabelValue: {
+      color: colors.primary,
+      fontSize: 13,
+      fontWeight: "600",
+    },
+    chipRow: {
+      flexDirection: "row",
+      flexWrap: "wrap",
+      gap: 8,
+      marginBottom: 14,
+    },
+    chip: {
+      paddingHorizontal: 16,
+      paddingVertical: 9,
+      borderRadius: 20,
+      backgroundColor: colors.surfaceElevated,
+      borderWidth: 1.5,
+      borderColor: colors.inputBorder,
+    },
+    chipSelected: {
+      backgroundColor: colors.primary,
+      borderColor: colors.primary,
+    },
+    chipText: {
+      fontSize: 14,
+      fontWeight: "600",
+      color: colors.textSecondary,
+    },
+    chipTextSelected: {
+      color: colors.textInverse,
+    },
+    colorLabelRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      marginBottom: 8,
+      marginTop: 4,
+    },
+    colorSelected: {
+      color: colors.primary,
+      fontSize: 13,
+      fontWeight: "600",
+    },
+    colorNone: {
+      color: colors.textMuted,
+      fontSize: 13,
+    },
+    colorGrid: {
+      flexDirection: "row",
+      flexWrap: "wrap",
+      gap: 10,
+      marginBottom: 14,
+    },
+    colorSwatch: {
+      width: 44,
+      height: 44,
+      borderRadius: 22,
+      justifyContent: "center",
+      alignItems: "center",
+      borderWidth: 1.5,
+      borderColor: "rgba(0,0,0,0.12)",
+    },
+    colorSwatchSelected: {
+      borderWidth: 3,
+      borderColor: colors.primary,
+      transform: [{ scale: 1.12 }],
     },
     button: {
       backgroundColor: colors.primary,

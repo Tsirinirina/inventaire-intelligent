@@ -1,7 +1,20 @@
+import { ACCESSORY_CATEGORIES } from "@/core/constants/categories";
+import { useAccessory } from "@/core/contexts/AccessoryContext";
+import { Accessory } from "@/core/entity/accessory.entity";
 import { formatAriary } from "@/core/utils/currency.utils";
+import { capitalizeWords } from "@/core/utils/capitalize.utils";
+import { useTheme } from "@/theme/ThemeProvider";
+import { ThemeColors } from "@/theme/colors";
 import { Image } from "expo-image";
 import { useRouter } from "expo-router";
-import { AlertCircle, Plus, Search, X } from "lucide-react-native";
+import {
+  AlertTriangle,
+  ChevronRight,
+  Package,
+  Plus,
+  Search,
+  X,
+} from "lucide-react-native";
 import { useMemo, useState } from "react";
 import {
   ActivityIndicator,
@@ -15,214 +28,189 @@ import {
   View,
 } from "react-native";
 
-import { ACCESSORY_CATEGORIES } from "@/core/constants/categories";
-import { useAccessory } from "@/core/contexts/AccessoryContext";
-import { Accessory } from "@/core/entity/accessory.entity";
-import { capitalizeWords } from "@/core/utils/capitalize.utils";
-import { useTheme } from "@/theme/ThemeProvider";
-import { ThemeColors } from "@/theme/colors";
+function StockBadge({
+  quantity,
+  colors,
+}: {
+  quantity: number;
+  colors: ThemeColors;
+}) {
+  const bg =
+    quantity === 0
+      ? colors.danger
+      : quantity <= 5
+        ? colors.warning
+        : colors.success;
+  const label =
+    quantity === 0 ? "Rupture" : quantity <= 5 ? `Faible · ${quantity}` : `${quantity}`;
+  return (
+    <View style={{ backgroundColor: bg + "22", borderRadius: 8, paddingHorizontal: 8, paddingVertical: 3 }}>
+      <Text style={{ color: bg, fontSize: 12, fontWeight: "700" }}>{label}</Text>
+    </View>
+  );
+}
 
 export default function AccessoriesScreen() {
   const router = useRouter();
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
 
-  const {
-    accessorys: accessories,
-    accessorysLoading: accessoriessLoading,
-    accessorysRefetch,
-    deleteAccessory,
-  } = useAccessory();
+  const { accessorys: accessories, accessorysLoading, deleteAccessory } = useAccessory();
 
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
 
-  const filteredProducts = useMemo(() => {
-    return accessories.filter((accessory) => {
-      const matchesSearch =
-        accessory.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        accessory.description
-          ?.toLowerCase()
-          .includes(searchQuery.toLowerCase());
-
-      const matchesBrand =
-        !selectedCategory || accessory.category === selectedCategory;
-
-      return matchesSearch && matchesBrand;
+  const filtered = useMemo(() => {
+    return accessories.filter((a) => {
+      const q = searchQuery.toLowerCase();
+      const matchSearch =
+        a.name.toLowerCase().includes(q) ||
+        (a.description?.toLowerCase().includes(q) ?? false);
+      const matchCat = !selectedCategory || a.category === selectedCategory;
+      return matchSearch && matchCat;
     });
   }, [accessories, searchQuery, selectedCategory]);
 
-  const handleDeleteAccessory = (id: number, name: string) => {
-    Alert.alert(
-      "Supprimer l'accessoire",
-      `Êtes-vous sûr de vouloir supprimer "${name}"?`,
-      [
-        { text: "Annuler", style: "cancel" },
-        {
-          text: "Supprimer",
-          style: "destructive",
-          onPress: async () => {
-            try {
-              await deleteAccessory(id);
-            } catch (error) {
-              Alert.alert("Error", "Échec de la suppression de l'accessoire");
-              console.error("Erreur de suppression:", error);
-            }
-          },
+  const handleDelete = (id: number, name: string) => {
+    Alert.alert("Supprimer", `Supprimer "${name}" ?`, [
+      { text: "Annuler", style: "cancel" },
+      {
+        text: "Supprimer",
+        style: "destructive",
+        onPress: async () => {
+          try {
+            await deleteAccessory(id);
+          } catch {
+            Alert.alert("Erreur", "Échec de la suppression");
+          }
         },
-      ],
-    );
+      },
+    ]);
   };
 
-  const renderProduct = ({ item }: { item: Accessory }) => (
+  const renderItem = ({ item }: { item: Accessory }) => (
     <Pressable
-      style={styles.productCard}
-      onPress={() => router.push(`/(tabs)/stock/accessory/edit/${item.id}`)}
-      onLongPress={() => handleDeleteAccessory(item.id, item.name)}
+      style={styles.card}
+      onPress={() => router.push(`/(tabs)/stock/accessory/edit/${item.id}` as any)}
+      onLongPress={() => handleDelete(item.id, item.name)}
     >
-      <View style={styles.productImageContainer}>
+      {/* Image */}
+      <View style={styles.imageWrap}>
         {item.imageUri ? (
-          <Image
-            source={{ uri: item.imageUri }}
-            style={styles.productImage}
-            contentFit="cover"
-          />
+          <Image source={{ uri: item.imageUri }} style={styles.image} contentFit="cover" />
         ) : (
-          <View style={styles.productImagePlaceholder}>
-            <Text style={styles.placeholderText}>Aucune image</Text>
-          </View>
-        )}
-        {item.quantity <= 5 && (
-          <View style={styles.lowStockBadge}>
-            <AlertCircle size={12} color="#FFF" />
-            <Text style={styles.lowStockText}>Faible</Text>
+          <View style={[styles.image, styles.imagePlaceholder]}>
+            <Package size={22} color={colors.textMuted} />
           </View>
         )}
       </View>
-      <View style={styles.productInfo}>
-        <Text style={styles.productName} numberOfLines={1}>
-          {item.name}
-        </Text>
-        <Text style={styles.productBrand} numberOfLines={1}>
+
+      {/* Infos */}
+      <View style={styles.cardBody}>
+        <Text style={styles.cardName} numberOfLines={1}>{item.name}</Text>
+        <Text style={styles.cardSub} numberOfLines={1}>
           {capitalizeWords(item.category)}
         </Text>
-        <View style={styles.productDetails}>
-          <Text style={styles.productPrice}>
-            {formatAriary(item.basePrice)}
-          </Text>
-          <Text style={styles.productQuantity}>Stock: {item.quantity}</Text>
+        <View style={styles.cardBottom}>
+          <Text style={styles.cardPrice}>{formatAriary(item.basePrice)}</Text>
+          <StockBadge quantity={item.quantity} colors={colors} />
         </View>
       </View>
+
+      {/* Chevron */}
+      <ChevronRight size={18} color={colors.textMuted} />
     </Pressable>
   );
 
   return (
     <View style={styles.container}>
-      <View style={styles.searchContainer}>
-        <View style={styles.searchInputWrapper}>
-          <Search
-            size={20}
-            color={colors.textMuted}
-            style={styles.searchIcon}
-          />
+      {/* Barre de recherche */}
+      <View style={styles.searchWrap}>
+        <View style={styles.searchBar}>
+          <Search size={18} color={colors.textMuted} />
           <TextInput
             style={styles.searchInput}
-            placeholder="Rechercher des accessoires..."
+            placeholder="Rechercher un accessoire..."
+            placeholderTextColor={colors.inputPlaceholder}
             value={searchQuery}
             onChangeText={setSearchQuery}
-            placeholderTextColor="#999"
           />
           {searchQuery.length > 0 && (
-            <Pressable
-              onPress={() => setSearchQuery("")}
-              style={styles.clearButton}
-            >
-              <X size={20} color={colors.textMuted} />
+            <Pressable onPress={() => setSearchQuery("")}>
+              <X size={18} color={colors.textMuted} />
             </Pressable>
           )}
         </View>
       </View>
 
-      <View style={styles.filterContainer}>
-        <Text style={styles.filterTitle}>Marques des produits</Text>
-
+      {/* Résumé + filtres catégories */}
+      <View style={styles.filtersWrap}>
+        <Text style={styles.countLabel}>
+          {filtered.length} accessoire{filtered.length !== 1 ? "s" : ""}
+          {accessories.length !== filtered.length ? ` sur ${accessories.length}` : ""}
+        </Text>
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
-          style={styles.brandFilterContainer}
-          contentContainerStyle={styles.brandFilterContent}
+          contentContainerStyle={styles.chipRow}
         >
           <Pressable
-            style={[
-              styles.brandChipAll,
-              !selectedCategory && styles.brandChipActive,
-            ]}
+            style={[styles.chip, !selectedCategory && styles.chipActive]}
             onPress={() => setSelectedCategory(null)}
           >
-            <Text
-              style={[
-                styles.brandChipText,
-                !selectedCategory && styles.brandChipTextActive,
-              ]}
-            >
+            <Text style={[styles.chipText, !selectedCategory && styles.chipTextActive]}>
               Tout
             </Text>
           </Pressable>
-          {ACCESSORY_CATEGORIES.map((category) => (
+          {ACCESSORY_CATEGORIES.map((cat) => (
             <Pressable
-              key={category}
-              style={[
-                styles.brandChip,
-                selectedCategory === category && styles.brandChipActive,
-              ]}
-              onPress={() => setSelectedCategory(category)}
+              key={cat}
+              style={[styles.chip, selectedCategory === cat && styles.chipActive]}
+              onPress={() => setSelectedCategory(cat)}
             >
               <Text
-                style={[
-                  styles.brandChipText,
-                  selectedCategory === category && styles.brandChipTextActive,
-                ]}
+                style={[styles.chipText, selectedCategory === cat && styles.chipTextActive]}
               >
-                {capitalizeWords(category)}
+                {capitalizeWords(cat)}
               </Text>
             </Pressable>
           ))}
         </ScrollView>
       </View>
 
-      {accessoriessLoading ? (
-        <View style={styles.loadingContainer}>
+      {/* Liste */}
+      {accessorysLoading ? (
+        <View style={styles.center}>
           <ActivityIndicator size="large" color={colors.primary} />
         </View>
-      ) : filteredProducts.length === 0 ? (
-        <View style={styles.emptyContainer}>
-          <Text style={styles.emptyText}>
-            {accessories.length === 0
-              ? "Aucun accessoire pour l'instant"
-              : "Aucun accessoire trouvé"}
+      ) : filtered.length === 0 ? (
+        <View style={styles.center}>
+          <AlertTriangle size={40} color={colors.textMuted} />
+          <Text style={styles.emptyTitle}>
+            {accessories.length === 0 ? "Aucun accessoire" : "Aucun résultat"}
           </Text>
-          {accessories.length === 0 && (
-            <Text style={styles.emptySubtext}>
-              Appuyez sur + pour ajouter votre premier accessoire
-            </Text>
-          )}
+          <Text style={styles.emptySub}>
+            {accessories.length === 0
+              ? "Appuyez sur + pour ajouter un accessoire"
+              : "Essayez un autre filtre"}
+          </Text>
         </View>
       ) : (
         <FlatList
-          data={filteredProducts}
-          renderItem={renderProduct}
+          data={filtered}
           keyExtractor={(item) => item.id.toString()}
-          numColumns={2}
-          contentContainerStyle={styles.productList}
+          renderItem={renderItem}
+          contentContainerStyle={styles.list}
           showsVerticalScrollIndicator={false}
         />
       )}
 
+      {/* FAB */}
       <Pressable
         style={styles.fab}
         onPress={() => router.push("/(tabs)/stock/accessory/add")}
       >
-        <Plus size={28} color={colors.textInverse} />
+        <Plus size={26} color={colors.textInverse} />
       </Pressable>
     </View>
   );
@@ -232,193 +220,147 @@ const createStyles = (colors: ThemeColors) =>
   StyleSheet.create({
     container: {
       flex: 1,
+      backgroundColor: colors.background,
     },
-    searchContainer: {
+    searchWrap: {
+      paddingHorizontal: 16,
       paddingTop: 12,
       paddingBottom: 8,
-      backgroundColor: colors.surface,
     },
-    searchInputWrapper: {
+    searchBar: {
       flexDirection: "row",
       alignItems: "center",
-      backgroundColor: colors.inputBackground,
-      borderRadius: 12,
-      paddingHorizontal: 12,
+      backgroundColor: colors.surface,
+      borderRadius: 14,
+      paddingHorizontal: 14,
+      paddingVertical: 10,
+      gap: 10,
       borderWidth: 1,
-      borderColor: colors.inputBorder,
-    },
-    searchIcon: {
-      marginRight: 8,
+      borderColor: colors.border,
     },
     searchInput: {
       flex: 1,
-      height: 44,
-      fontSize: 16,
+      fontSize: 15,
       color: colors.inputText,
     },
-    clearButton: {
-      padding: 4,
-    },
-    filterContainer: {
-      minHeight: 70,
-      maxHeight: 70,
-    },
-    filterTitle: {
-      fontSize: 18,
-      fontWeight: "600" as const,
-      color: colors.text,
-      paddingLeft: 14,
-    },
-    brandFilterContainer: {
-      paddingVertical: 10,
-    },
-    brandFilterContent: {
-      gap: 8,
-      height: "auto",
-    },
-    brandChip: {
-      display: "flex",
-      justifyContent: "center",
-      alignItems: "center",
+    filtersWrap: {
       paddingHorizontal: 16,
+      paddingBottom: 8,
+      gap: 6,
+    },
+    countLabel: {
+      fontSize: 12,
+      color: colors.textMuted,
+      fontWeight: "500",
+    },
+    chipRow: {
+      flexDirection: "row",
+      gap: 6,
+    },
+    chip: {
+      paddingHorizontal: 14,
+      paddingVertical: 6,
       borderRadius: 20,
       backgroundColor: colors.surfaceElevated,
       borderWidth: 1,
       borderColor: colors.border,
     },
-    brandChipAll: {
-      display: "flex",
-      justifyContent: "center",
-      alignItems: "center",
-      paddingHorizontal: 16,
-      borderRadius: 20,
-      backgroundColor: colors.success,
-    },
-    brandChipActive: {
+    chipActive: {
       backgroundColor: colors.primary,
       borderColor: colors.primary,
     },
-    brandChipText: {
-      fontSize: 16,
-      fontWeight: "800" as const,
+    chipText: {
+      fontSize: 13,
+      fontWeight: "600",
       color: colors.textSecondary,
     },
-    brandChipTextActive: {
+    chipTextActive: {
       color: colors.textInverse,
     },
-    loadingContainer: {
-      flex: 1,
-      justifyContent: "center" as const,
-      alignItems: "center" as const,
+    list: {
+      paddingHorizontal: 16,
+      paddingBottom: 100,
+      gap: 10,
     },
-    emptyContainer: {
-      flex: 1,
-      justifyContent: "center" as const,
-      alignItems: "center" as const,
-      paddingHorizontal: 40,
-    },
-    emptyText: {
-      fontSize: 20,
-      fontWeight: "600" as const,
-      color: colors.textSecondary,
-      marginBottom: 8,
-    },
-    emptySubtext: {
-      fontSize: 16,
-      color: colors.textMuted,
-      textAlign: "center" as const,
-    },
-    productList: { gap: 4 },
-    productCard: {
-      flex: 1,
+    card: {
+      flexDirection: "row",
+      alignItems: "center",
       backgroundColor: colors.surface,
       borderRadius: 16,
-      margin: 4,
-      overflow: "hidden",
-      shadowColor: colors.shadow,
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.1,
-      shadowRadius: 4,
-      elevation: 3,
-    },
-    productImageContainer: {
-      position: "relative" as const,
-    },
-    productImage: {
-      width: "100%",
-      height: 140,
-    },
-    productImagePlaceholder: {
-      width: "100%",
-      height: 140,
-      backgroundColor: colors.inputBackground,
-      justifyContent: "center" as const,
-      alignItems: "center" as const,
-    },
-    placeholderText: {
-      color: colors.textMuted,
-      fontSize: 14,
-    },
-    lowStockBadge: {
-      position: "absolute" as const,
-      top: 8,
-      right: 8,
-      flexDirection: "row" as const,
-      alignItems: "center" as const,
-      backgroundColor: colors.danger,
-      paddingHorizontal: 8,
-      paddingVertical: 4,
-      borderRadius: 12,
-      gap: 4,
-    },
-    lowStockText: {
-      color: colors.textInverse,
-      fontSize: 12,
-      fontWeight: "600" as const,
-    },
-    productInfo: {
+      borderWidth: 1,
+      borderColor: colors.border,
       padding: 12,
+      gap: 12,
     },
-    productName: {
-      fontSize: 16,
-      fontWeight: "600" as const,
-      color: colors.text,
-      marginBottom: 4,
+    imageWrap: {
+      borderRadius: 12,
+      overflow: "hidden",
     },
-    productBrand: {
-      fontSize: 14,
-      color: colors.textSecondary,
-      marginBottom: 8,
-    },
-    productDetails: {
-      flexDirection: "row" as const,
-      justifyContent: "space-between" as const,
-      alignItems: "center" as const,
-    },
-    productPrice: {
-      fontSize: 18,
-      fontWeight: "700" as const,
-      color: colors.primary,
-    },
-    productQuantity: {
-      fontSize: 16,
-      color: colors.textSecondary,
-      fontWeight: "600",
-    },
-    fab: {
-      position: "absolute" as const,
-      bottom: 24,
-      right: 24,
+    image: {
       width: 60,
       height: 60,
-      borderRadius: 30,
+      borderRadius: 12,
+    },
+    imagePlaceholder: {
+      backgroundColor: colors.surfaceElevated,
+      justifyContent: "center",
+      alignItems: "center",
+    },
+    cardBody: {
+      flex: 1,
+      gap: 4,
+    },
+    cardName: {
+      fontSize: 15,
+      fontWeight: "700",
+      color: colors.text,
+    },
+    cardSub: {
+      fontSize: 12,
+      color: colors.textMuted,
+    },
+    cardBottom: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      marginTop: 2,
+    },
+    cardPrice: {
+      fontSize: 14,
+      fontWeight: "700",
+      color: colors.primary,
+    },
+    center: {
+      flex: 1,
+      justifyContent: "center",
+      alignItems: "center",
+      gap: 12,
+      padding: 32,
+    },
+    emptyTitle: {
+      fontSize: 18,
+      fontWeight: "700",
+      color: colors.textSecondary,
+    },
+    emptySub: {
+      fontSize: 14,
+      color: colors.textMuted,
+      textAlign: "center",
+    },
+    fab: {
+      position: "absolute",
+      bottom: 24,
+      right: 24,
+      width: 58,
+      height: 58,
+      borderRadius: 29,
       backgroundColor: colors.primary,
-      justifyContent: "center" as const,
-      alignItems: "center" as const,
-      shadowColor: colors.shadow,
-      shadowOffset: { width: 0, height: 4 },
-      shadowOpacity: 0.3,
-      shadowRadius: 8,
+      justifyContent: "center",
+      alignItems: "center",
+      shadowColor: colors.primary,
+      shadowOffset: { width: 0, height: 6 },
+      shadowOpacity: 0.4,
+      shadowRadius: 10,
       elevation: 8,
     },
   });

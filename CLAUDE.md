@@ -64,12 +64,17 @@ Use `NewProduct = Omit<Product, "id">` pattern for create DTOs.
 
 File-based routing via `expo-router`. Main structure:
 ```
+app/(auth)/
+  login.tsx       # Écran de connexion (react-hook-form + zod + useTheme)
 app/(tabs)/
-  dashboard/      # Stats overview (currently uses mock data)
+  dashboard/      # Stats temps réel via useInventory()
   stock/
     product/      # add.tsx + edit/[id].tsx
     accessory/    # add.tsx + edit/[id].tsx
-  sales/          # Cart + item addition
+  sales/
+    index.tsx     # Liste produits+accessoires vendables
+    add.tsx       # Formulaire ajout panier (avec scanner IMEI)
+    cart.tsx      # Panier + confirmation (addSale + stock decrement + toast)
 ```
 
 ### Theme
@@ -84,10 +89,10 @@ Use the `useToast()` hook (from `components/ui/Toast`) for user feedback. The `T
 
 Images are saved to the local file system (`expo-file-system`) and their URI stored in the DB column `imageUri`. `expo-image-picker` and `expo-camera` are both used for capture.
 
-## Known Incomplete Areas
+## Fonctionnalités complètes
 
-- **Dashboard**: Stats are hardcoded mock values — not yet connected to SQLite.
-- **Delete**: Product/accessory deletion logic is commented out in services.
-- **Sales confirmation**: Cart works but final stock decrement + confirmation flow is incomplete.
-- **Auth**: `AuthContext` and `SellerContext` are implemented but no login screen guards routes yet.
-- **OCR / Scanner**: Components exist (`components/ocr/`, `components/scanner/`) but are not integrated into main flows.
+- **Dashboard** : stats temps réel depuis SQLite via `InventoryContext`
+- **Delete** : `deleteProduct` / `deleteAccessory` opérationnels (service + context + UI)
+- **Sales confirmation** : `cart.tsx` enregistre les ventes, décrémente le stock, toast succès
+- **Auth** : login screen + `_layout.tsx` redirige vers `/(auth)/login` si non authentifié
+- **Scanner IMEI** : `NumberScanner` (OCR) intégré dans `sales/add.tsx`

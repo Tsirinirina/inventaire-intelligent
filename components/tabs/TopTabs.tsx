@@ -1,13 +1,13 @@
 import { useTheme } from "@/theme/ThemeProvider";
+import { ThemeColors } from "@/theme/colors";
 import React, { useMemo, useState } from "react";
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 
 interface TabProps {
   label: string;
   children: React.ReactNode;
 }
 
-// This acts as a placeholder for the tab content
 export const TabScreen = ({
   children,
 }: {
@@ -18,8 +18,10 @@ export const TabScreen = ({
 };
 
 export const TopTabs = ({
+  title,
   children,
 }: {
+  title?: string;
   children: React.ReactElement<TabProps>[];
 }) => {
   const [activeTab, setActiveTab] = useState(0);
@@ -28,60 +30,74 @@ export const TopTabs = ({
 
   return (
     <View style={styles.container}>
-      <View style={styles.tabBar}>
-        {children.map((child, index) => (
-          <TouchableOpacity
-            key={index}
-            style={[styles.tabItem, activeTab === index && styles.activeTab]}
-            onPress={() => setActiveTab(index)}
-          >
-            <Text
-              style={[
-                styles.tabLabel,
-                activeTab === index && styles.activeLabel,
-              ]}
+      {/* Header — titre + pill switcher */}
+      <View style={styles.header}>
+        {title && <Text style={styles.headerTitle}>{title}</Text>}
+        <View style={styles.tabs}>
+          {children.map((child, index) => (
+            <Pressable
+              key={index}
+              style={[styles.tab, activeTab === index && styles.tabActive]}
+              onPress={() => setActiveTab(index)}
             >
-              {child.props.label}
-            </Text>
-          </TouchableOpacity>
-        ))}
+              <Text
+                style={[
+                  styles.tabText,
+                  activeTab === index && styles.tabTextActive,
+                ]}
+              >
+                {child.props.label}
+              </Text>
+            </Pressable>
+          ))}
+        </View>
       </View>
+
+      {/* Contenu de l'onglet actif */}
       <View style={styles.content}>{children[activeTab]}</View>
     </View>
   );
 };
 
-const createStyles = (colors: ReturnType<typeof useTheme>["colors"]) =>
+const createStyles = (colors: ThemeColors) =>
   StyleSheet.create({
     container: {
       flex: 1,
-    },
-    tabBar: {
-      flexDirection: "row",
       backgroundColor: colors.background,
-      borderWidth: 2,
-      borderColor: colors.primaryDark,
-      borderRadius: 18,
-      padding: 4,
-      overflow: "hidden",
-      elevation: 5,
     },
-    tabItem: {
+    header: {
+      paddingHorizontal: 20,
+      paddingTop: 8,
+      paddingBottom: 12,
+    },
+    headerTitle: {
+      fontSize: 28,
+      fontWeight: "700",
+      color: colors.text,
+      marginBottom: 14,
+    },
+    tabs: {
+      flexDirection: "row",
+      backgroundColor: colors.surfaceElevated,
+      borderRadius: 12,
+      padding: 4,
+    },
+    tab: {
       flex: 1,
-      paddingVertical: 10,
       alignItems: "center",
       justifyContent: "center",
-      borderRadius: 12,
+      paddingVertical: 9,
+      borderRadius: 9,
     },
-    activeTab: {
+    tabActive: {
       backgroundColor: colors.primary,
     },
-    tabLabel: {
-      color: colors.primaryDark,
+    tabText: {
+      fontSize: 13,
       fontWeight: "600",
-      fontSize: 16,
+      color: colors.textSecondary,
     },
-    activeLabel: {
+    tabTextActive: {
       color: colors.textInverse,
     },
     content: {

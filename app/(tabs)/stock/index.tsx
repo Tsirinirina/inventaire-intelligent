@@ -21,7 +21,7 @@ export default function StockScreen() {
       refreshing={false}
       onRefresh={() => ""}
     >
-      <TopTabs>
+      <TopTabs title="Stock">
         <TabScreen label={`Produits (${products.length})`}>
           <ProductsListScreen />
         </TabScreen>

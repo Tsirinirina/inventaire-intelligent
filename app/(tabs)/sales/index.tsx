@@ -25,7 +25,9 @@ export default function SaleScreen() {
 
   const { products, productsLoading } = useProduct();
   const { accessorys: accessories, accessorysLoading } = useAccessory();
-  const totalItems = useCartStore((s) => s.totalItems);
+  const cartCount = useCartStore((s) =>
+    s.items.reduce((sum, i) => sum + i.quantity, 0)
+  );
 
   const sellableItems: SellableItem[] = useMemo(
     () => [
@@ -51,8 +53,6 @@ export default function SaleScreen() {
     ],
     [products, accessories],
   );
-
-  const cartCount = totalItems();
 
   if (productsLoading || accessorysLoading) {
     return (

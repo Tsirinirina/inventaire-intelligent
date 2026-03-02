@@ -1,6 +1,8 @@
+import { SyncMeta } from "@/core/types/sync.types";
+
 export type ProductCategory = "smartphone" | "laptop" | "tablet" | "autre";
 
-export interface Product {
+export interface Product extends SyncMeta {
   id: number;
   name: string;
   brand: string;
@@ -13,5 +15,5 @@ export interface Product {
   stockUpdatedAt: string;
 }
 
-export type NewProduct = Omit<Product, "id">;
+export type NewProduct = Omit<Product, "id" | "syncId" | "syncStatus" | "syncedAt">;
 export const PRODUCT_QUERY_KEY = "product";

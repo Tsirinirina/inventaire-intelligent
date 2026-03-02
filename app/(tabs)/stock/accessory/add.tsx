@@ -99,8 +99,7 @@ export default function AddAccessoryScreen() {
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ["images"],
       allowsEditing: true,
-      aspect: [4, 3],
-      quality: 0.8,
+      quality: 0.85,
     });
 
     if (!result.canceled && result.assets[0]) {
@@ -144,32 +143,29 @@ export default function AddAccessoryScreen() {
     }
   };
 
+  const handleImageOptions = () => {
+    Alert.alert("Photo de l'accessoire", "Choisissez une source", [
+      { text: "Caméra", onPress: handleTakePhoto },
+      { text: "Galerie", onPress: handlePickImage },
+      { text: "Annuler", style: "cancel" },
+    ]);
+  };
+
   if (showCamera) {
     return (
-      <KeyboardAvoidingView
-        style={{ flex: 1 }}
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
-      >
-        <View style={styles.cameraContainer}>
-          <CameraView ref={cameraRef} style={styles.camera} facing="back">
-            <View style={styles.cameraControls}>
-              <Pressable
-                style={styles.cameraButton}
-                onPress={() => setShowCamera(false)}
-              >
-                <X size={24} color={colors.textInverse} />
-              </Pressable>
-              <Pressable
-                style={styles.captureButton}
-                onPress={handleCapturePhoto}
-              >
-                <View style={styles.captureButtonInner} />
-              </Pressable>
-              <View style={styles.cameraButton} />
-            </View>
-          </CameraView>
-        </View>
-      </KeyboardAvoidingView>
+      <View style={styles.cameraContainer}>
+        <CameraView ref={cameraRef} style={styles.camera} facing="back">
+          <View style={styles.cameraControls}>
+            <Pressable style={styles.cameraButton} onPress={() => setShowCamera(false)}>
+              <X size={24} color="#fff" />
+            </Pressable>
+            <Pressable style={styles.captureButton} onPress={handleCapturePhoto}>
+              <View style={styles.captureButtonInner} />
+            </Pressable>
+            <View style={styles.cameraButton} />
+          </View>
+        </CameraView>
+      </View>
     );
   }
 
@@ -182,38 +178,32 @@ export default function AddAccessoryScreen() {
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
       >
-        <View style={styles.imageSection}>
+        <Pressable style={styles.imageArea} onPress={handleImageOptions}>
           {imageUri ? (
-            <View>
-              <Image
-                source={{ uri: imageUri }}
-                style={styles.productImage}
-                contentFit="cover"
-              />
+            <>
+              <Image source={{ uri: imageUri }} style={styles.imagePreview} contentFit="cover" />
               <Pressable
                 style={styles.removeImageButton}
                 onPress={() => setImageUri(undefined)}
+                hitSlop={8}
               >
-                <X size={16} color={colors.textInverse} />
+                <X size={15} color="#fff" />
               </Pressable>
-            </View>
+              <View style={styles.imageEditBadge}>
+                <Camera size={13} color="#fff" />
+                <Text style={styles.imageEditText}>Modifier</Text>
+              </View>
+            </>
           ) : (
             <View style={styles.imagePlaceholder}>
-              <ImageIcon size={40} color={colors.textMuted} />
-              <Text style={styles.imagePlaceholderText}>Aucune image</Text>
+              <View style={styles.imagePlaceholderIcon}>
+                <Camera size={30} color={colors.primary} />
+              </View>
+              <Text style={styles.imagePlaceholderTitle}>Ajouter une photo</Text>
+              <Text style={styles.imagePlaceholderSub}>Caméra · Galerie</Text>
             </View>
           )}
-          <View style={styles.imageButtons}>
-            <Pressable style={styles.imageButton} onPress={handleTakePhoto}>
-              <Camera size={20} color={colors.primary} />
-              <Text style={styles.imageButtonText}>Caméra</Text>
-            </Pressable>
-            <Pressable style={styles.imageButton} onPress={handlePickImage}>
-              <ImageIcon size={20} color={colors.primary} />
-              <Text style={styles.imageButtonText}>Galerie</Text>
-            </Pressable>
-          </View>
-        </View>
+        </Pressable>
 
         <View style={styles.form}>
           <Controller
@@ -376,89 +366,100 @@ const createStyles = (colors: ThemeColors) =>
       flex: 1,
     },
     cameraControls: {
-      position: "absolute" as const,
-      bottom: 40,
+      position: "absolute",
+      bottom: 48,
       left: 0,
       right: 0,
-      flexDirection: "row" as const,
-      justifyContent: "space-between" as const,
-      alignItems: "center" as const,
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "center",
       paddingHorizontal: 40,
     },
     cameraButton: {
-      width: 60,
-      height: 60,
-      justifyContent: "center" as const,
-      alignItems: "center" as const,
+      width: 56,
+      height: 56,
+      justifyContent: "center",
+      alignItems: "center",
     },
     captureButton: {
-      width: 80,
-      height: 80,
-      borderRadius: 40,
-      backgroundColor: colors.surface,
-      justifyContent: "center" as const,
-      alignItems: "center" as const,
-      borderWidth: 4,
-      borderColor: "rgba(255, 255, 255, 0.3)",
+      width: 76,
+      height: 76,
+      borderRadius: 38,
+      backgroundColor: "rgba(255,255,255,0.25)",
+      justifyContent: "center",
+      alignItems: "center",
+      borderWidth: 3,
+      borderColor: "rgba(255,255,255,0.6)",
     },
     captureButtonInner: {
-      width: 68,
-      height: 68,
-      borderRadius: 34,
-      backgroundColor: colors.surface,
+      width: 60,
+      height: 60,
+      borderRadius: 30,
+      backgroundColor: "#fff",
     },
-    imageSection: {
-      backgroundColor: colors.surface,
-      padding: 20,
-      alignItems: "center" as const,
+    imageArea: {
+      width: "100%",
+      aspectRatio: 4 / 3,
+      backgroundColor: colors.surfaceElevated,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.border,
+      overflow: "hidden",
     },
-    productImage: {
-      width: 200,
-      height: 200,
-      borderRadius: 12,
+    imagePreview: {
+      width: "100%",
+      height: "100%",
     },
     removeImageButton: {
-      position: "absolute" as const,
-      top: 8,
-      right: 8,
+      position: "absolute",
+      top: 12,
+      right: 12,
       backgroundColor: colors.danger,
-      width: 28,
-      height: 28,
-      borderRadius: 14,
-      justifyContent: "center" as const,
-      alignItems: "center" as const,
+      width: 30,
+      height: 30,
+      borderRadius: 15,
+      justifyContent: "center",
+      alignItems: "center",
+    },
+    imageEditBadge: {
+      position: "absolute",
+      bottom: 12,
+      right: 12,
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 5,
+      backgroundColor: "rgba(0,0,0,0.55)",
+      paddingHorizontal: 10,
+      paddingVertical: 5,
+      borderRadius: 20,
+    },
+    imageEditText: {
+      color: "#fff",
+      fontSize: 12,
+      fontWeight: "600",
     },
     imagePlaceholder: {
-      width: 200,
-      height: 200,
-      backgroundColor: colors.inputBackground,
-      borderRadius: 12,
-      justifyContent: "center" as const,
-      alignItems: "center" as const,
+      flex: 1,
+      justifyContent: "center",
+      alignItems: "center",
       gap: 8,
     },
-    imagePlaceholderText: {
-      fontSize: 14,
+    imagePlaceholderIcon: {
+      width: 64,
+      height: 64,
+      borderRadius: 20,
+      backgroundColor: colors.primary + "1A",
+      justifyContent: "center",
+      alignItems: "center",
+      marginBottom: 4,
+    },
+    imagePlaceholderTitle: {
+      fontSize: 15,
+      fontWeight: "600",
+      color: colors.textSecondary,
+    },
+    imagePlaceholderSub: {
+      fontSize: 13,
       color: colors.textMuted,
-    },
-    imageButtons: {
-      flexDirection: "row" as const,
-      gap: 12,
-      marginTop: 16,
-    },
-    imageButton: {
-      flexDirection: "row" as const,
-      alignItems: "center" as const,
-      gap: 8,
-      paddingHorizontal: 20,
-      paddingVertical: 10,
-      backgroundColor: colors.inputBackground,
-      borderRadius: 8,
-    },
-    imageButtonText: {
-      fontSize: 16,
-      fontWeight: "600" as const,
-      color: colors.primary,
     },
     form: {
       padding: 20,

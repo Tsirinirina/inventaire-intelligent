@@ -2,18 +2,24 @@ import { useAccessory } from "@/core/contexts/AccessoryContext";
 import { useProduct } from "@/core/contexts/ProductContext";
 import { useSale } from "@/core/contexts/SaleContext";
 import { CartItem, useCartStore } from "@/core/store/cart.store";
+import { useToast } from "@/components/ui/Toast";
 import { useTheme } from "@/theme/ThemeProvider";
+import { ThemeColors } from "@/theme/colors";
 import { Image } from "expo-image";
 import { useRouter } from "expo-router";
-import { Trash2 } from "lucide-react-native";
+import { Trash2, User } from "lucide-react-native";
 import React, { useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
   FlatList,
+  KeyboardAvoidingView,
+  Platform,
   Pressable,
+  ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
@@ -26,13 +32,18 @@ export default function CartScreen() {
   const items = useCartStore((s) => s.items);
   const removeItem = useCartStore((s) => s.removeItem);
   const clearCart = useCartStore((s) => s.clearCart);
-  const totalAmount = useCartStore((s) => s.totalAmount);
+  const totalAmount = useCartStore((s) =>
+    s.items.reduce((sum, i) => sum + i.unitPrice * i.quantity, 0)
+  );
 
+  const { showToast } = useToast();
   const { addSale } = useSale();
   const { products, updateProduct } = useProduct();
   const { accessorys: accessories, updateAccessory } = useAccessory();
 
   const [confirming, setConfirming] = useState(false);
+  const [buyerName, setBuyerName] = useState("");
+  const [buyerCin, setBuyerCin] = useState("");
 
   const handleRemove = (cartId: string, name: string) => {
     Alert.alert(
@@ -40,11 +51,7 @@ export default function CartScreen() {
       `Retirer "${name}" du panier ?`,
       [
         { text: "Annuler", style: "cancel" },
-        {
-          text: "Retirer",
-          style: "destructive",
-          onPress: () => removeItem(cartId),
-        },
+        { text: "Retirer", style: "destructive", onPress: () => removeItem(cartId) },
       ],
     );
   };
@@ -52,9 +59,12 @@ export default function CartScreen() {
   const handleConfirm = async () => {
     if (items.length === 0) return;
 
+    const buyer = buyerName.trim() || null;
+    const cin = buyerCin.trim() || null;
+
     Alert.alert(
       "Confirmer la vente",
-      `${items.length} article(s) — Total : ${totalAmount().toLocaleString()} Ar\n\nCette action va enregistrer toutes les ventes et mettre à jour le stock.`,
+      `${items.length} article(s) — Total : ${totalAmount.toLocaleString()} Ar\n\nCette action va enregistrer toutes les ventes et mettre à jour le stock.`,
       [
         { text: "Annuler", style: "cancel" },
         {
@@ -64,22 +74,21 @@ export default function CartScreen() {
             setConfirming(true);
             try {
               for (const item of items) {
-                // Enregistrer la vente
                 await addSale({
                   sellerId: item.sellerId,
                   productId: item.type === "product" ? item.itemId : undefined,
-                  accessoryId:
-                    item.type === "accessory" ? item.itemId : undefined,
+                  accessoryId: item.type === "accessory" ? item.itemId : undefined,
                   quantity: item.quantity,
                   unitPrice: item.unitPrice,
                   imei: item.imei,
                   color: item.color,
                   ram: item.ram,
                   rom: item.rom,
+                  buyerName: buyer ?? undefined,
+                  buyerCin: cin ?? undefined,
                   createdAt: new Date().toISOString(),
                 });
 
-                // Décrémenter le stock
                 if (item.type === "product") {
                   const p = products.find((x) => x.id === item.itemId);
                   if (p) {
@@ -102,6 +111,7 @@ export default function CartScreen() {
               }
 
               clearCart();
+              showToast("success", `${items.length} vente(s) enregistrée(s) avec succès`);
               router.replace("/(tabs)/sales");
             } catch (error) {
               Alert.alert("Erreur", "Une erreur s'est produite lors de la confirmation.");
@@ -118,43 +128,30 @@ export default function CartScreen() {
   const renderItem = ({ item }: { item: CartItem }) => (
     <View style={styles.card}>
       {item.imageUri ? (
-        <Image
-          source={{ uri: item.imageUri }}
-          style={styles.image}
-          contentFit="cover"
-        />
+        <Image source={{ uri: item.imageUri }} style={styles.image} contentFit="cover" />
       ) : (
         <View style={[styles.image, styles.imagePlaceholder]} />
       )}
 
       <View style={styles.cardInfo}>
         <Text style={styles.cardName} numberOfLines={1}>{item.name}</Text>
-        {item.brand && (
-          <Text style={styles.cardSub}>{item.brand}</Text>
-        )}
+        {item.brand && <Text style={styles.cardSub}>{item.brand}</Text>}
         <View style={styles.cardDetails}>
           <Text style={styles.cardQty}>×{item.quantity}</Text>
           <Text style={styles.cardPrice}>
             {(item.quantity * item.unitPrice).toLocaleString()} Ar
           </Text>
         </View>
-        {item.imei && (
-          <Text style={styles.cardMeta}>IMEI: {item.imei}</Text>
-        )}
-        {item.color && (
-          <Text style={styles.cardMeta}>Couleur: {item.color}</Text>
-        )}
+        {item.imei && <Text style={styles.cardMeta}>IMEI : {item.imei}</Text>}
+        {item.color && <Text style={styles.cardMeta}>Couleur : {item.color}</Text>}
         {item.ram && (
           <Text style={styles.cardMeta}>
-            RAM {item.ram}Go{item.rom ? ` / ROM ${item.rom}Go` : ""}
+            RAM {item.ram} Go{item.rom ? ` / ROM ${item.rom >= 1024 ? `${item.rom / 1024} To` : `${item.rom} Go`}` : ""}
           </Text>
         )}
       </View>
 
-      <TouchableOpacity
-        style={styles.removeBtn}
-        onPress={() => handleRemove(item.cartId, item.name)}
-      >
+      <TouchableOpacity style={styles.removeBtn} onPress={() => handleRemove(item.cartId, item.name)}>
         <Trash2 size={18} color={colors.danger} />
       </TouchableOpacity>
     </View>
@@ -167,10 +164,7 @@ export default function CartScreen() {
         <Text style={styles.emptySub}>
           Ajoutez des articles depuis la liste de vente
         </Text>
-        <Pressable
-          style={styles.backBtn}
-          onPress={() => router.back()}
-        >
+        <Pressable style={styles.backBtn} onPress={() => router.back()}>
           <Text style={styles.backBtnText}>Retour aux articles</Text>
         </Pressable>
       </View>
@@ -178,13 +172,42 @@ export default function CartScreen() {
   }
 
   return (
-    <View style={styles.container}>
+    <KeyboardAvoidingView
+      style={styles.container}
+      behavior={Platform.OS === "ios" ? "padding" : undefined}
+    >
       <FlatList
         data={items}
         keyExtractor={(item) => item.cartId}
         renderItem={renderItem}
         contentContainerStyle={styles.list}
         showsVerticalScrollIndicator={false}
+        ListFooterComponent={
+          <View style={styles.buyerSection}>
+            <View style={styles.buyerHeader}>
+              <User size={16} color={colors.textSecondary} />
+              <Text style={styles.buyerTitle}>Informations acheteur</Text>
+              <Text style={styles.buyerOptional}>(optionnel)</Text>
+            </View>
+
+            <TextInput
+              style={styles.input}
+              placeholder="Nom complet"
+              placeholderTextColor={colors.inputPlaceholder}
+              value={buyerName}
+              onChangeText={setBuyerName}
+              autoCapitalize="words"
+            />
+            <TextInput
+              style={styles.input}
+              placeholder="Numéro CIN"
+              placeholderTextColor={colors.inputPlaceholder}
+              value={buyerCin}
+              onChangeText={setBuyerCin}
+              keyboardType="number-pad"
+            />
+          </View>
+        }
       />
 
       {/* Footer total + confirmation */}
@@ -194,7 +217,7 @@ export default function CartScreen() {
             {items.length} article{items.length > 1 ? "s" : ""}
           </Text>
           <Text style={styles.totalAmount}>
-            {totalAmount().toLocaleString()} Ar
+            {totalAmount.toLocaleString()} Ar
           </Text>
         </View>
 
@@ -210,11 +233,11 @@ export default function CartScreen() {
           )}
         </TouchableOpacity>
       </View>
-    </View>
+    </KeyboardAvoidingView>
   );
 }
 
-const createStyles = (colors: ReturnType<typeof useTheme>["colors"]) =>
+const createStyles = (colors: ThemeColors) =>
   StyleSheet.create({
     container: {
       flex: 1,
@@ -222,7 +245,7 @@ const createStyles = (colors: ReturnType<typeof useTheme>["colors"]) =>
     },
     list: {
       padding: 16,
-      paddingBottom: 20,
+      paddingBottom: 8,
     },
     emptyContainer: {
       flex: 1,
@@ -309,6 +332,40 @@ const createStyles = (colors: ReturnType<typeof useTheme>["colors"]) =>
     },
     removeBtn: {
       padding: 8,
+    },
+    buyerSection: {
+      backgroundColor: colors.surface,
+      borderRadius: 16,
+      borderWidth: 1,
+      borderColor: colors.border,
+      padding: 16,
+      marginBottom: 8,
+    },
+    buyerHeader: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 6,
+      marginBottom: 14,
+    },
+    buyerTitle: {
+      color: colors.text,
+      fontSize: 15,
+      fontWeight: "600",
+    },
+    buyerOptional: {
+      color: colors.textMuted,
+      fontSize: 13,
+    },
+    input: {
+      backgroundColor: colors.inputBackground,
+      borderWidth: 1,
+      borderColor: colors.inputBorder,
+      borderRadius: 12,
+      paddingHorizontal: 14,
+      paddingVertical: 12,
+      color: colors.inputText,
+      fontSize: 15,
+      marginBottom: 10,
     },
     footer: {
       backgroundColor: colors.surface,

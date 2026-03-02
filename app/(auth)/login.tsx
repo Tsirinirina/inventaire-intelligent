@@ -4,24 +4,30 @@ import {
   loginFormDefaultValues,
   loginSchema,
 } from "@/core/forms/login.form";
+import { useTheme } from "@/theme/ThemeProvider";
+import { ThemeColors } from "@/theme/colors";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "expo-router";
 import { Controller, useForm } from "react-hook-form";
 import {
   KeyboardAvoidingView,
   Platform,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
-import { ScrollView } from "react-native-gesture-handler";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useMemo } from "react";
 
 export default function LoginScreen() {
   const { login, loginError, loginLoading } = useAuth();
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const router = useRouter();
+
   const {
     control,
     handleSubmit,
@@ -61,18 +67,11 @@ export default function LoginScreen() {
             <Controller
               control={control}
               name="name"
-              rules={{
-                required: "Le nom est obligatoire",
-                minLength: {
-                  value: 3,
-                  message: "Minimum 3 caractères",
-                },
-              }}
               render={({ field: { onChange, value } }) => (
                 <TextInput
                   style={[styles.input, errors.name && styles.inputError]}
                   placeholder="Nom du vendeur"
-                  placeholderTextColor="#999"
+                  placeholderTextColor={colors.inputPlaceholder}
                   autoCapitalize="none"
                   value={value}
                   onChangeText={onChange}
@@ -87,18 +86,11 @@ export default function LoginScreen() {
             <Controller
               control={control}
               name="passcode"
-              rules={{
-                required: "Le code est obligatoire",
-                minLength: {
-                  value: 4,
-                  message: "Minimum 4 chiffres",
-                },
-              }}
               render={({ field: { onChange, value } }) => (
                 <TextInput
                   style={[styles.input, errors.passcode && styles.inputError]}
                   placeholder="Code secret"
-                  placeholderTextColor="#999"
+                  placeholderTextColor={colors.inputPlaceholder}
                   secureTextEntry
                   keyboardType="number-pad"
                   value={value}
@@ -138,102 +130,87 @@ export default function LoginScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  safe: {
-    flex: 1,
-    backgroundColor: "#F6F8FA",
-  },
-
-  container: {
-    flexGrow: 1,
-    justifyContent: "center",
-    padding: 24,
-  },
-
-  header: {
-    marginBottom: 32,
-  },
-
-  title: {
-    fontSize: 28,
-    fontWeight: "700",
-    color: "#111",
-    marginBottom: 8,
-  },
-
-  subtitle: {
-    fontSize: 14,
-    color: "#666",
-  },
-
-  card: {
-    backgroundColor: "#FFF",
-    borderRadius: 16,
-    padding: 24,
-    shadowColor: "#000",
-    shadowOpacity: 0.06,
-    shadowRadius: 10,
-    elevation: 4,
-  },
-
-  input: {
-    height: 52,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: "#E5E7EB",
-    paddingHorizontal: 16,
-    fontSize: 16,
-    marginBottom: 16,
-    color: "#111",
-    backgroundColor: "#FAFAFA",
-  },
-
-  button: {
-    height: 52,
-    borderRadius: 12,
-    backgroundColor: "#007AFF",
-    alignItems: "center",
-    justifyContent: "center",
-    marginTop: 8,
-  },
-
-  buttonText: {
-    color: "#FFF",
-    fontSize: 16,
-    fontWeight: "600",
-  },
-
-  inputError: {
-    borderColor: "#DC2626",
-  },
-
-  errorText: {
-    color: "#DC2626",
-    fontSize: 13,
-    marginBottom: 8,
-  },
-
-  serverError: {
-    color: "#B91C1C",
-    fontSize: 14,
-    textAlign: "center",
-    marginVertical: 8,
-  },
-
-  buttonDisabled: {
-    opacity: 0.6,
-  },
-
-  error: {
-    color: "#DC2626",
-    fontSize: 13,
-    marginBottom: 12,
-  },
-
-  footer: {
-    textAlign: "center",
-    marginTop: 32,
-    fontSize: 12,
-    color: "#999",
-  },
-});
+const createStyles = (colors: ThemeColors) =>
+  StyleSheet.create({
+    safe: {
+      flex: 1,
+      backgroundColor: colors.background,
+    },
+    container: {
+      flexGrow: 1,
+      justifyContent: "center",
+      padding: 24,
+    },
+    header: {
+      marginBottom: 32,
+    },
+    title: {
+      fontSize: 28,
+      fontWeight: "700",
+      color: colors.text,
+      marginBottom: 8,
+    },
+    subtitle: {
+      fontSize: 14,
+      color: colors.textSecondary,
+    },
+    card: {
+      backgroundColor: colors.surface,
+      borderRadius: 16,
+      padding: 24,
+      shadowColor: colors.shadow,
+      shadowOpacity: 0.06,
+      shadowRadius: 10,
+      elevation: 4,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    input: {
+      height: 52,
+      borderRadius: 12,
+      borderWidth: 1,
+      borderColor: colors.inputBorder,
+      paddingHorizontal: 16,
+      fontSize: 16,
+      marginBottom: 16,
+      color: colors.inputText,
+      backgroundColor: colors.inputBackground,
+    },
+    button: {
+      height: 52,
+      borderRadius: 12,
+      backgroundColor: colors.primary,
+      alignItems: "center",
+      justifyContent: "center",
+      marginTop: 8,
+    },
+    buttonText: {
+      color: colors.textInverse,
+      fontSize: 16,
+      fontWeight: "600",
+    },
+    inputError: {
+      borderColor: colors.danger,
+    },
+    errorText: {
+      color: colors.danger,
+      fontSize: 13,
+      marginBottom: 8,
+      marginTop: -8,
+    },
+    serverError: {
+      color: colors.danger,
+      fontSize: 14,
+      textAlign: "center",
+      marginVertical: 8,
+    },
+    buttonDisabled: {
+      opacity: 0.6,
+    },
+    footer: {
+      textAlign: "center",
+      marginTop: 32,
+      fontSize: 12,
+      color: colors.textMuted,
+    },
+  });

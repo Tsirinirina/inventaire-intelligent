@@ -5,6 +5,7 @@ import {
   Product,
   PRODUCT_QUERY_KEY,
 } from "../entity/product.entity";
+import { STOCK_MOVEMENT_QUERY_KEY } from "../entity/stock_movement.entity";
 import {
   addProduct,
   deleteProduct,
@@ -31,9 +32,8 @@ export function useAddProductQuery(queryClient: QueryClient) {
       return addProduct(db, dto);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: [PRODUCT_QUERY_KEY],
-      });
+      queryClient.invalidateQueries({ queryKey: [PRODUCT_QUERY_KEY] });
+      queryClient.invalidateQueries({ queryKey: [STOCK_MOVEMENT_QUERY_KEY] });
     },
   });
 }
@@ -45,9 +45,8 @@ export function useUpdateProductQuery(queryClient: QueryClient) {
       return updateProduct(db, dto);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: [PRODUCT_QUERY_KEY],
-      });
+      queryClient.invalidateQueries({ queryKey: [PRODUCT_QUERY_KEY] });
+      queryClient.invalidateQueries({ queryKey: [STOCK_MOVEMENT_QUERY_KEY] });
     },
   });
 }
