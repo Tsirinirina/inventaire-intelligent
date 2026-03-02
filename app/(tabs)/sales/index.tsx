@@ -1,10 +1,13 @@
 import { useAccessory } from "@/core/contexts/AccessoryContext";
 import { useProduct } from "@/core/contexts/ProductContext";
 import { SellableItem } from "@/core/entity/sale.entity";
+import { useCartStore } from "@/core/store/cart.store";
+import { capitalizeWords } from "@/core/utils/capitalize.utils";
 import { useTheme } from "@/theme/ThemeProvider";
-import { useRouter } from "expo-router";
+import { ShoppingCart } from "lucide-react-native";
 import React, { useMemo } from "react";
 import {
+  ActivityIndicator,
   FlatList,
   Image,
   StyleSheet,
@@ -13,8 +16,52 @@ import {
   View,
 } from "react-native";
 
+interface Props {
+  items: SellableItem[];
+}
+
 export default function SaleScreen() {
-  const router = useRouter();
+  const { sales, salesLoading } = useSale();
+  const {
+    products,
+    productsLoading,
+    productsError,
+    productsRefetch,
+    addProduct,
+  } = useProduct();
+  const {
+    accessorys: accessories,
+    accessorysLoading: accessoriessLoading,
+    accessorysRefetch,
+  } = useAccessory();
+
+  const { addItem } = useCartStore();
+
+  const sellableItems: SellableItem[] = useMemo(() => {
+    const mappedProducts: SellableItem[] = products.map((product) => ({
+      id: product.id,
+      type: "product",
+      name: product.name,
+      brand: product.brand,
+      category: product.category,
+      basePrice: product.basePrice,
+      quantity: product.quantity,
+      imageUri: product.imageUri,
+    }));
+
+    const mappedAccessories: SellableItem[] = accessories.map((accessory) => ({
+      id: accessory.id,
+      type: "accessory",
+      name: accessory.name,
+      category: accessory.category,
+      basePrice: accessory.basePrice,
+      quantity: accessory.quantity,
+      imageUri: accessory.imageUri,
+    }));
+
+    return [...mappedProducts, ...mappedAccessories];
+  }, [products, accessories]);
+
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
 
@@ -31,42 +78,52 @@ export default function SaleScreen() {
 
   const renderItem = ({ item }: { item: SellableItem }) => (
     <View style={styles.card}>
-      {item.imageUri ? (
-        <Image source={{ uri: item.imageUri }} style={styles.image} />
-      ) : (
-        <View style={[styles.image, styles.imagePlaceholder]} />
-      )}
+      <View
+        style={[
+          styles.stockItem,
+          item.quantity >= 2 ? styles.regularStock : styles.outOfStock,
+        ]}
+      >
+        <Text style={styles.stock}>{item.quantity}</Text>
+      </View>
+      <Image
+        source={{ uri: item.imageUri || "https://via.placeholder.com/80" }}
+        style={styles.image}
+      />
 
       <View style={styles.info}>
         <Text style={styles.name}>{item.name}</Text>
 
-        {item.brand && <Text style={styles.brand}>{item.brand}</Text>}
+        {item.type === "accessory" && (
+          <Text style={styles.brand}>{capitalizeWords(item.category)}</Text>
+        )}
+        {item.type === "product" && item.brand && (
+          <Text style={styles.brand}>{item.brand}</Text>
+        )}
 
         <Text style={styles.price}>{item.basePrice.toLocaleString()} Ar</Text>
-
-        <Text style={styles.stock}>Stock: {item.quantity}</Text>
       </View>
 
-      <TouchableOpacity
-        style={styles.addButton}
-        onPress={() =>
-          router.push({
-            pathname: "/(tabs)/sales/add",
-            params: { item: JSON.stringify(item) },
-          })
-        }
-      >
-        <Text style={styles.addText}>Ajouter</Text>
+      <TouchableOpacity style={styles.addButton} onPress={() => addItem(item)}>
+        <Text style={styles.addText}>
+          <ShoppingCart size={24} color={colors.textInverse} />
+        </Text>
       </TouchableOpacity>
     </View>
   );
 
+  if (productsLoading || accessoriessLoading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color={colors.primary} />
+      </View>
+    );
+  }
+
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Nouvelle Vente</Text>
-
       <FlatList
-        data={items}
+        data={sellableItems}
         keyExtractor={(item) => item.type + item.id}
         renderItem={renderItem}
       />
@@ -85,21 +142,24 @@ const createStyles = (colors: ReturnType<typeof useTheme>["colors"]) =>
       color: colors.text,
       fontSize: 24,
       fontWeight: "bold",
-      marginBottom: 16,
     },
     card: {
-      backgroundColor: colors.surfaceElevated,
+      position: "relative",
+      backgroundColor: colors.surface,
       borderRadius: 20,
-      padding: 16,
-      marginBottom: 12,
+      paddingHorizontal: 12,
+      paddingVertical: 0,
+      borderWidth: 1,
+      borderColor: colors.border,
       flexDirection: "row",
       alignItems: "center",
+      marginTop: 14,
+      gap: 12,
     },
     image: {
-      width: 64,
-      height: 64,
+      width: 46,
+      height: 46,
       borderRadius: 12,
-      marginRight: 16,
     },
     imagePlaceholder: {
       backgroundColor: colors.inputBackground,
@@ -122,11 +182,27 @@ const createStyles = (colors: ReturnType<typeof useTheme>["colors"]) =>
       fontWeight: "bold",
       marginTop: 6,
     },
+    //
+    stockItem: {
+      borderRadius: 50,
+      position: "absolute",
+      top: -10,
+      left: 0,
+      width: 24,
+      height: 24,
+      justifyContent: "center",
+      alignItems: "center",
+    },
     stock: {
-      color: colors.textMuted,
-      fontSize: 12,
+      color: colors.textInverse,
+      fontSize: 14,
+      fontWeight: "bold",
       marginTop: 2,
     },
+    outOfStock: { borderRadius: 50, backgroundColor: colors.warning },
+    regularStock: { borderRadius: 50, backgroundColor: colors.accentLight },
+
+    //
     addButton: {
       backgroundColor: colors.primary,
       paddingHorizontal: 14,
@@ -136,5 +212,10 @@ const createStyles = (colors: ReturnType<typeof useTheme>["colors"]) =>
     addText: {
       color: colors.textInverse,
       fontWeight: "600",
+    },
+    loadingContainer: {
+      flex: 1,
+      justifyContent: "center",
+      alignItems: "center",
     },
   });
