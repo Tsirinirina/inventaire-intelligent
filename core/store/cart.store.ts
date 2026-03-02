@@ -1,65 +1,52 @@
 import { create } from "zustand";
 
 export interface CartItem {
-  id: number;
-  type: string;
+  // Identifiant unique de la ligne panier
+  cartId: string;
+  // Référence à l'item en stock
+  itemId: number;
+  type: "product" | "accessory";
+  // Infos d'affichage
   name: string;
-  basePrice: number;
+  imageUri?: string;
+  category: string;
+  brand?: string;
+  availableStock: number;
+  // Champs de vente
+  sellerId: number;
   quantity: number;
+  unitPrice: number;
   imei?: string;
+  color?: string;
+  ram?: number;
+  rom?: number;
 }
 
-interface CartState {
+interface CartStore {
   items: CartItem[];
-
   addItem: (item: CartItem) => void;
-  removeItem: (id: number) => void;
-  increaseQuantity: (id: number) => void;
-  decreaseQuantity: (id: number) => void;
+  removeItem: (cartId: string) => void;
   clearCart: () => void;
-
-  total: () => number;
+  totalAmount: () => number;
+  totalItems: () => number;
 }
 
-export const useCartStore = create<CartState>((set, get) => ({
+export const useCartStore = create<CartStore>((set, get) => ({
   items: [],
 
   addItem: (item) =>
-    set((state) => {
-      const existing = state.items.find((i) => i.id === item.id);
+    set((state) => ({ items: [...state.items, item] })),
 
-      if (existing) {
-        return {
-          items: state.items.map((i) =>
-            i.id === item.id ? { ...i, quantity: i.quantity + 1 } : i,
-          ),
-        };
-      }
-
-      return { items: [...state.items, { ...item, quantity: 1 }] };
-    }),
-
-  removeItem: (id) =>
+  removeItem: (cartId) =>
     set((state) => ({
-      items: state.items.filter((i) => i.id !== id),
-    })),
-
-  increaseQuantity: (id) =>
-    set((state) => ({
-      items: state.items.map((i) =>
-        i.id === id ? { ...i, quantity: i.quantity + 1 } : i,
-      ),
-    })),
-
-  decreaseQuantity: (id) =>
-    set((state) => ({
-      items: state.items
-        .map((i) => (i.id === id ? { ...i, quantity: i.quantity - 1 } : i))
-        .filter((i) => i.quantity > 0),
+      items: state.items.filter((i) => i.cartId !== cartId),
     })),
 
   clearCart: () => set({ items: [] }),
 
-  total: () =>
-    get().items.reduce((sum, item) => sum + item.basePrice * item.quantity, 0),
+  totalAmount: () =>
+    get().items.reduce((sum, i) => sum + i.unitPrice * i.quantity, 0),
+
+  totalItems: () =>
+    get().items.reduce((sum, i) => sum + i.quantity, 0),
 }));

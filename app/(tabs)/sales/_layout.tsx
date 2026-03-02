@@ -4,12 +4,10 @@ export default function SalesLayout() {
   return (
     <Stack screenOptions={{ headerShown: true }}>
       <Stack.Screen name="index" options={{ title: "Ventes" }} />
+      <Stack.Screen name="add" options={{ title: "Détails de la vente" }} />
       <Stack.Screen
         name="cart"
-        options={{
-          title: "Panier",
-          presentation: "modal",
-        }}
+        options={{ title: "Panier", presentation: "modal" }}
       />
     </Stack>
   );

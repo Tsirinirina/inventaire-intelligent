@@ -1,12 +1,17 @@
 import { useAccessory } from "@/core/contexts/AccessoryContext";
 import { useProduct } from "@/core/contexts/ProductContext";
 import { useSale } from "@/core/contexts/SaleContext";
-import { NewSale } from "@/core/entity/sale.entity";
+import { CartItem, useCartStore } from "@/core/store/cart.store";
 import { useTheme } from "@/theme/ThemeProvider";
-import { useLocalSearchParams, useRouter } from "expo-router";
-import React, { useMemo } from "react";
+import { Image } from "expo-image";
+import { useRouter } from "expo-router";
+import { Trash2 } from "lucide-react-native";
+import React, { useMemo, useState } from "react";
 import {
+  ActivityIndicator,
+  Alert,
   FlatList,
+  Pressable,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -18,62 +23,191 @@ export default function CartScreen() {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
 
-  const { sale: saleStr } = useLocalSearchParams<{ sale: string }>();
-  const sale: NewSale = JSON.parse(saleStr);
+  const items = useCartStore((s) => s.items);
+  const removeItem = useCartStore((s) => s.removeItem);
+  const clearCart = useCartStore((s) => s.clearCart);
+  const totalAmount = useCartStore((s) => s.totalAmount);
 
   const { addSale } = useSale();
   const { products, updateProduct } = useProduct();
   const { accessorys: accessories, updateAccessory } = useAccessory();
 
-  const total = sale.quantity * sale.unitPrice;
+  const [confirming, setConfirming] = useState(false);
+
+  const handleRemove = (cartId: string, name: string) => {
+    Alert.alert(
+      "Retirer du panier",
+      `Retirer "${name}" du panier ?`,
+      [
+        { text: "Annuler", style: "cancel" },
+        {
+          text: "Retirer",
+          style: "destructive",
+          onPress: () => removeItem(cartId),
+        },
+      ],
+    );
+  };
 
   const handleConfirm = async () => {
-    await addSale(sale);
+    if (items.length === 0) return;
 
-    if (sale.productId) {
-      const p = products.find((x) => x.id === sale.productId);
-      if (p) {
-        await updateProduct({
-          ...p,
-          quantity: p.quantity - sale.quantity,
-          stockUpdatedAt: new Date().toISOString(),
-        });
-      }
-    } else if (sale.accessoryId) {
-      const a = accessories.find((x) => x.id === sale.accessoryId);
-      if (a) {
-        await updateAccessory({
-          ...a,
-          quantity: a.quantity - sale.quantity,
-          stockUpdatedAt: new Date().toISOString(),
-        });
-      }
-    }
+    Alert.alert(
+      "Confirmer la vente",
+      `${items.length} article(s) — Total : ${totalAmount().toLocaleString()} Ar\n\nCette action va enregistrer toutes les ventes et mettre à jour le stock.`,
+      [
+        { text: "Annuler", style: "cancel" },
+        {
+          text: "Confirmer",
+          style: "default",
+          onPress: async () => {
+            setConfirming(true);
+            try {
+              for (const item of items) {
+                // Enregistrer la vente
+                await addSale({
+                  sellerId: item.sellerId,
+                  productId: item.type === "product" ? item.itemId : undefined,
+                  accessoryId:
+                    item.type === "accessory" ? item.itemId : undefined,
+                  quantity: item.quantity,
+                  unitPrice: item.unitPrice,
+                  imei: item.imei,
+                  color: item.color,
+                  ram: item.ram,
+                  rom: item.rom,
+                  createdAt: new Date().toISOString(),
+                });
 
-    router.replace("/(tabs)/sales");
+                // Décrémenter le stock
+                if (item.type === "product") {
+                  const p = products.find((x) => x.id === item.itemId);
+                  if (p) {
+                    await updateProduct({
+                      ...p,
+                      quantity: Math.max(0, p.quantity - item.quantity),
+                      stockUpdatedAt: new Date().toISOString(),
+                    });
+                  }
+                } else {
+                  const a = accessories.find((x) => x.id === item.itemId);
+                  if (a) {
+                    await updateAccessory({
+                      ...a,
+                      quantity: Math.max(0, a.quantity - item.quantity),
+                      stockUpdatedAt: new Date().toISOString(),
+                    });
+                  }
+                }
+              }
+
+              clearCart();
+              router.replace("/(tabs)/sales");
+            } catch (error) {
+              Alert.alert("Erreur", "Une erreur s'est produite lors de la confirmation.");
+              console.error(error);
+            } finally {
+              setConfirming(false);
+            }
+          },
+        },
+      ],
+    );
   };
+
+  const renderItem = ({ item }: { item: CartItem }) => (
+    <View style={styles.card}>
+      {item.imageUri ? (
+        <Image
+          source={{ uri: item.imageUri }}
+          style={styles.image}
+          contentFit="cover"
+        />
+      ) : (
+        <View style={[styles.image, styles.imagePlaceholder]} />
+      )}
+
+      <View style={styles.cardInfo}>
+        <Text style={styles.cardName} numberOfLines={1}>{item.name}</Text>
+        {item.brand && (
+          <Text style={styles.cardSub}>{item.brand}</Text>
+        )}
+        <View style={styles.cardDetails}>
+          <Text style={styles.cardQty}>×{item.quantity}</Text>
+          <Text style={styles.cardPrice}>
+            {(item.quantity * item.unitPrice).toLocaleString()} Ar
+          </Text>
+        </View>
+        {item.imei && (
+          <Text style={styles.cardMeta}>IMEI: {item.imei}</Text>
+        )}
+        {item.color && (
+          <Text style={styles.cardMeta}>Couleur: {item.color}</Text>
+        )}
+        {item.ram && (
+          <Text style={styles.cardMeta}>
+            RAM {item.ram}Go{item.rom ? ` / ROM ${item.rom}Go` : ""}
+          </Text>
+        )}
+      </View>
+
+      <TouchableOpacity
+        style={styles.removeBtn}
+        onPress={() => handleRemove(item.cartId, item.name)}
+      >
+        <Trash2 size={18} color={colors.danger} />
+      </TouchableOpacity>
+    </View>
+  );
+
+  if (items.length === 0) {
+    return (
+      <View style={styles.emptyContainer}>
+        <Text style={styles.emptyText}>Panier vide</Text>
+        <Text style={styles.emptySub}>
+          Ajoutez des articles depuis la liste de vente
+        </Text>
+        <Pressable
+          style={styles.backBtn}
+          onPress={() => router.back()}
+        >
+          <Text style={styles.backBtnText}>Retour aux articles</Text>
+        </Pressable>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Panier</Text>
-
       <FlatList
-        data={[sale]}
-        keyExtractor={(_, index) => index.toString()}
-        renderItem={({ item }) => (
-          <View style={styles.card}>
-            <Text style={styles.text}>Quantité: {item.quantity}</Text>
-            <Text style={styles.muted}>Prix: {item.unitPrice} Ar</Text>
-            {item.imei && <Text style={styles.muted}>IMEI: {item.imei}</Text>}
-          </View>
-        )}
+        data={items}
+        keyExtractor={(item) => item.cartId}
+        renderItem={renderItem}
+        contentContainerStyle={styles.list}
+        showsVerticalScrollIndicator={false}
       />
 
+      {/* Footer total + confirmation */}
       <View style={styles.footer}>
-        <Text style={styles.total}>Total: {total.toLocaleString()} Ar</Text>
+        <View style={styles.totalRow}>
+          <Text style={styles.totalLabel}>
+            {items.length} article{items.length > 1 ? "s" : ""}
+          </Text>
+          <Text style={styles.totalAmount}>
+            {totalAmount().toLocaleString()} Ar
+          </Text>
+        </View>
 
-        <TouchableOpacity style={styles.confirmButton} onPress={handleConfirm}>
-          <Text style={styles.confirmText}>Confirmer la vente</Text>
+        <TouchableOpacity
+          style={[styles.confirmBtn, confirming && styles.confirmBtnDisabled]}
+          onPress={handleConfirm}
+          disabled={confirming}
+        >
+          {confirming ? (
+            <ActivityIndicator color={colors.textInverse} />
+          ) : (
+            <Text style={styles.confirmText}>Confirmer la vente</Text>
+          )}
         </TouchableOpacity>
       </View>
     </View>
@@ -85,45 +219,131 @@ const createStyles = (colors: ReturnType<typeof useTheme>["colors"]) =>
     container: {
       flex: 1,
       backgroundColor: colors.background,
-      padding: 16,
     },
-    title: {
+    list: {
+      padding: 16,
+      paddingBottom: 20,
+    },
+    emptyContainer: {
+      flex: 1,
+      backgroundColor: colors.background,
+      justifyContent: "center",
+      alignItems: "center",
+      gap: 12,
+      padding: 32,
+    },
+    emptyText: {
       color: colors.text,
-      fontSize: 24,
-      fontWeight: "bold",
-      marginBottom: 16,
+      fontSize: 22,
+      fontWeight: "700",
+    },
+    emptySub: {
+      color: colors.textMuted,
+      fontSize: 15,
+      textAlign: "center",
+    },
+    backBtn: {
+      marginTop: 8,
+      backgroundColor: colors.primary,
+      borderRadius: 12,
+      paddingHorizontal: 24,
+      paddingVertical: 12,
+    },
+    backBtnText: {
+      color: colors.textInverse,
+      fontWeight: "600",
+      fontSize: 15,
     },
     card: {
-      backgroundColor: colors.surfaceElevated,
-      padding: 16,
+      backgroundColor: colors.surface,
       borderRadius: 16,
+      borderWidth: 1,
+      borderColor: colors.border,
+      padding: 14,
+      flexDirection: "row",
+      alignItems: "center",
       marginBottom: 12,
+      gap: 12,
     },
-    text: {
+    image: {
+      width: 56,
+      height: 56,
+      borderRadius: 10,
+    },
+    imagePlaceholder: {
+      backgroundColor: colors.inputBackground,
+    },
+    cardInfo: {
+      flex: 1,
+      gap: 2,
+    },
+    cardName: {
       color: colors.text,
+      fontSize: 15,
       fontWeight: "600",
     },
-    muted: {
+    cardSub: {
       color: colors.textMuted,
+      fontSize: 12,
+    },
+    cardDetails: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 8,
       marginTop: 4,
     },
+    cardQty: {
+      color: colors.textSecondary,
+      fontSize: 14,
+      fontWeight: "600",
+    },
+    cardPrice: {
+      color: colors.primary,
+      fontSize: 15,
+      fontWeight: "700",
+    },
+    cardMeta: {
+      color: colors.textMuted,
+      fontSize: 12,
+      marginTop: 2,
+    },
+    removeBtn: {
+      padding: 8,
+    },
     footer: {
-      marginTop: 20,
+      backgroundColor: colors.surface,
+      borderTopWidth: 1,
+      borderTopColor: colors.border,
+      padding: 20,
+      paddingBottom: 36,
+      gap: 14,
     },
-    total: {
+    totalRow: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "center",
+    },
+    totalLabel: {
+      color: colors.textSecondary,
+      fontSize: 15,
+    },
+    totalAmount: {
       color: colors.text,
-      fontSize: 20,
-      fontWeight: "bold",
-      marginBottom: 16,
+      fontSize: 22,
+      fontWeight: "700",
     },
-    confirmButton: {
+    confirmBtn: {
       backgroundColor: colors.primary,
-      padding: 16,
-      borderRadius: 16,
+      borderRadius: 14,
+      paddingVertical: 16,
+      alignItems: "center",
+    },
+    confirmBtnDisabled: {
+      opacity: 0.6,
     },
     confirmText: {
       color: colors.textInverse,
-      textAlign: "center",
-      fontWeight: "bold",
+      fontSize: 16,
+      fontWeight: "700",
     },
   });
