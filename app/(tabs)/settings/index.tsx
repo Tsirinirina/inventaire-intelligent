@@ -1,4 +1,5 @@
 import { useAuth } from "@/core/contexts/AuthContext";
+import { apiClient } from "@/core/services/api/api.client";
 import { countPendingItems, runSync } from "@/core/services/sync.service";
 import { useSyncStore } from "@/core/store/sync.store";
 import { SyncProgress } from "@/core/types/sync.types";
@@ -18,6 +19,7 @@ import {
   Smartphone,
   Sun,
   User,
+  Wifi,
 } from "lucide-react-native";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
@@ -207,6 +209,7 @@ export default function SettingsScreen() {
 
   const [urlInput, setUrlInput] = useState(serverUrl);
   const [pendingCount, setPendingCount] = useState(0);
+  const [isTesting, setIsTesting] = useState(false);
 
   // Compter les items en attente au montage + après chaque sync
   const refreshPending = useCallback(() => {
@@ -221,12 +224,38 @@ export default function SettingsScreen() {
     refreshPending();
   }, [refreshPending, runStatus]);
 
-  // ── Sync ───────────────────────────────────────────────────────────────────
-  const handleSync = async () => {
-    if (!serverUrl) {
-      Alert.alert("URL manquante", "Configurez l'URL du serveur d'abord.");
+  // ── Test connexion ─────────────────────────────────────────────────────────
+  const handleTestConnection = async () => {
+    // Appliquer l'URL courante du champ avant de tester
+    const cleanUrl = urlInput.trim().replace(/\/$/, "");
+    if (!cleanUrl) {
+      Alert.alert("URL manquante", "Saisissez l'URL du serveur d'abord.\nEx: http://192.168.1.112:3000");
       return;
     }
+    setServerUrl(cleanUrl);
+    setIsTesting(true);
+    try {
+      await apiClient.get<{ status: string; timestamp: string }>("/health");
+      Alert.alert("Connexion OK ✓", `Le serveur ${cleanUrl} répond correctement.`);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Erreur inconnue";
+      Alert.alert("Connexion échouée ✗", msg);
+    } finally {
+      setIsTesting(false);
+    }
+  };
+
+  // ── Sync ───────────────────────────────────────────────────────────────────
+  const handleSync = async () => {
+    // IMPORTANT : appliquer l'URL du champ texte avant de syncer
+    // (au cas où onBlur n'a pas encore tiré)
+    const cleanUrl = urlInput.trim().replace(/\/$/, "");
+    if (!cleanUrl) {
+      Alert.alert("URL manquante", "Configurez l'URL du serveur d'abord.\nEx: http://192.168.1.112:3000");
+      return;
+    }
+    setServerUrl(cleanUrl);
+
     if (!currentSeller) {
       Alert.alert("Non connecté", "Veuillez vous connecter d'abord.");
       return;
@@ -427,6 +456,24 @@ export default function SettingsScreen() {
               </Text>
             </View>
           )}
+
+          <View style={styles.divider} />
+
+          {/* Bouton test connexion */}
+          <Pressable
+            style={[styles.testBtn, isTesting && styles.syncBtnDisabled]}
+            onPress={handleTestConnection}
+            disabled={isTesting || isSyncing}
+          >
+            {isTesting ? (
+              <ActivityIndicator size="small" color={colors.primary} />
+            ) : (
+              <Wifi size={16} color={colors.primary} />
+            )}
+            <Text style={styles.testBtnText}>
+              {isTesting ? "Test en cours…" : "Tester la connexion"}
+            </Text>
+          </Pressable>
 
           <View style={styles.divider} />
 
@@ -682,6 +729,24 @@ const createStyles = (colors: ThemeColors) =>
       fontSize: 13,
       color: colors.primary,
       fontWeight: "500",
+    },
+    testBtn: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "center",
+      gap: 8,
+      marginHorizontal: 16,
+      marginTop: 12,
+      backgroundColor: colors.primary + "14",
+      paddingVertical: 11,
+      borderRadius: 12,
+      borderWidth: 1,
+      borderColor: colors.primary + "40",
+    },
+    testBtnText: {
+      fontSize: 14,
+      fontWeight: "600",
+      color: colors.primary,
     },
     syncBtn: {
       flexDirection: "row",

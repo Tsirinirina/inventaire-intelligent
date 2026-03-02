@@ -29,13 +29,17 @@ class ApiClient {
     return this.baseUrl.length > 0;
   }
 
+  getBaseUrl(): string {
+    return this.baseUrl;
+  }
+
   private async request<T>(
     method: string,
     path: string,
     options?: { body?: unknown; signal?: AbortSignal },
   ): Promise<T> {
     if (!this.baseUrl) {
-      throw new ApiError(0, "URL du serveur non configurée");
+      throw new ApiError(0, "URL du serveur non configurée. Allez dans Paramètres et saisissez l'adresse IP du serveur.");
     }
 
     const controller = new AbortController();
@@ -67,6 +71,26 @@ class ApiClient {
       // Le serveur NestJS wrappe toutes les réponses : { success: true, data: T }
       const json = await res.json();
       return (json.data !== undefined ? json.data : json) as T;
+    } catch (err) {
+      // Distinguer timeout, réseau injoignable, et autres erreurs
+      if (err instanceof ApiError) throw err;
+
+      const isAbort =
+        err instanceof Error &&
+        (err.name === "AbortError" || err.message.toLowerCase().includes("aborted"));
+
+      if (isAbort) {
+        throw new ApiError(
+          0,
+          `Délai dépassé (${this.timeout / 1000}s). Le serveur ${this.baseUrl} ne répond pas. Vérifiez que l'IP et le port sont corrects et que le serveur est démarré.`,
+        );
+      }
+
+      // Erreur réseau (ECONNREFUSED, Network request failed, etc.)
+      throw new ApiError(
+        0,
+        `Impossible de joindre le serveur ${this.baseUrl}. Vérifiez la connexion réseau et l'adresse IP.`,
+      );
     } finally {
       clearTimeout(timer);
     }
@@ -94,25 +118,46 @@ class ApiClient {
 
   /** Upload multipart (pour les images) */
   async upload<T>(path: string, formData: FormData): Promise<T> {
-    if (!this.baseUrl) throw new ApiError(0, "URL du serveur non configurée");
-
-    const res = await fetch(`${this.baseUrl}/api/v1${path}`, {
-      method: "POST",
-      headers: this.authToken
-        ? { Authorization: `Bearer ${this.authToken}` }
-        : {},
-      body: formData,
-    });
-
-    if (!res.ok) {
-      const err = await res
-        .json()
-        .catch(() => ({ message: `HTTP ${res.status}` }));
-      throw new ApiError(res.status, err.message ?? `HTTP ${res.status}`);
+    if (!this.baseUrl) {
+      throw new ApiError(0, "URL du serveur non configurée.");
     }
 
-    const json = await res.json();
-    return (json.data !== undefined ? json.data : json) as T;
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 30_000); // 30s pour les uploads
+
+    try {
+      const res = await fetch(`${this.baseUrl}/api/v1${path}`, {
+        method: "POST",
+        headers: this.authToken
+          ? { Authorization: `Bearer ${this.authToken}` }
+          : {},
+        body: formData,
+        signal: controller.signal,
+      });
+
+      if (!res.ok) {
+        const err = await res
+          .json()
+          .catch(() => ({ message: `HTTP ${res.status}` }));
+        throw new ApiError(res.status, err.message ?? `HTTP ${res.status}`);
+      }
+
+      const json = await res.json();
+      return (json.data !== undefined ? json.data : json) as T;
+    } catch (err) {
+      if (err instanceof ApiError) throw err;
+
+      const isAbort =
+        err instanceof Error &&
+        (err.name === "AbortError" || err.message.toLowerCase().includes("aborted"));
+
+      if (isAbort) {
+        throw new ApiError(0, `Upload timeout (30s). Vérifiez la connexion réseau.`);
+      }
+      throw new ApiError(0, `Upload échoué : impossible de joindre ${this.baseUrl}`);
+    } finally {
+      clearTimeout(timer);
+    }
   }
 }
 

@@ -87,6 +87,17 @@ export const useSyncStore = create<SyncState>()(
         lastSyncAt: state.lastSyncAt,
         lastResult: state.lastResult,
       }),
+      // CRITIQUE : re-configurer apiClient après rehydratation depuis AsyncStorage.
+      // Sans ce callback, apiClient.baseUrl reste "" après un redémarrage de l'app
+      // même si serverUrl est sauvegardé dans le store persisté.
+      onRehydrateStorage: () => (state) => {
+        if (state?.serverUrl) {
+          apiClient.configure(state.serverUrl);
+        }
+        if (state?.authToken) {
+          apiClient.setToken(state.authToken);
+        }
+      },
     },
   ),
 );
