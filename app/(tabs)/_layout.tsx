@@ -1,7 +1,7 @@
 import { useAuth } from "@/core/contexts/AuthContext";
 import { useTheme } from "@/theme/ThemeProvider";
 import { Redirect, Tabs } from "expo-router";
-import { Boxes, History, Home, SlidersHorizontal, Zap } from "lucide-react-native";
+import { Boxes, ClipboardList, History, Home, SlidersHorizontal, Zap } from "lucide-react-native";
 import React from "react";
 import { ActivityIndicator, Platform, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -117,6 +117,14 @@ export default function TabLayout() {
         options={{
           title: "Ventes",
           tabBarIcon: makeTabIcon(Zap, colors.primary),
+        }}
+      />
+
+      <Tabs.Screen
+        name="procurement"
+        options={{
+          title: "Appro",
+          tabBarIcon: makeTabIcon(ClipboardList, colors.primary),
         }}
       />
 
