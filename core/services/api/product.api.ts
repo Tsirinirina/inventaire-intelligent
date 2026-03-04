@@ -1,4 +1,5 @@
 import { Product } from "@/core/entity/product.entity";
+import { ServerProduct } from "@/core/types/sync.types";
 import { apiClient } from "./api.client";
 
 /** Réponse serveur après création / mise à jour */
@@ -25,8 +26,9 @@ export const productApi = {
     return apiClient.put<ProductApiResponse>(`/products/${syncId}`, product);
   },
 
-  /** Pull des changements depuis le serveur (pour la sync bidirectionnelle) */
-  fetchSince(since: string): Promise<Product[]> {
-    return apiClient.get<Product[]>(`/products?since=${encodeURIComponent(since)}`);
+  /** Pull des changements depuis le serveur (sync bidirectionnelle) */
+  fetchSince(since?: string | null): Promise<ServerProduct[]> {
+    const query = since ? `?since=${encodeURIComponent(since)}` : "";
+    return apiClient.get<ServerProduct[]>(`/products${query}`);
   },
 };

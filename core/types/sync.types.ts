@@ -16,13 +16,46 @@ export interface SyncResult {
   synced: number;
   failed: number;
   errors: string[];
+  pulled: number;
 }
 
 // ─── Progression en temps réel ───────────────────────────────────────────────
-export type SyncPhase = "images" | "products" | "accessories" | "sales";
+export type SyncPhase =
+  | "images"
+  | "products"
+  | "accessories"
+  | "sales"
+  | "pull-products"
+  | "pull-accessories";
 
 export interface SyncProgress {
   phase: SyncPhase;
   current: number;
   total: number;
+}
+
+// ─── Données serveur reçues lors du PULL ─────────────────────────────────────
+export interface ServerProduct {
+  syncId: string;
+  name: string;
+  brand: string;
+  category: string;
+  description?: string;
+  basePrice: number;
+  quantity: number;
+  imageUri?: string;
+  createdAt: string;
+  stockUpdatedAt: string;
+}
+
+export interface ServerAccessory {
+  syncId: string;
+  name: string;
+  category: string;
+  description?: string;
+  basePrice: number;
+  quantity: number;
+  imageUri?: string;
+  createdAt: string;
+  stockUpdatedAt: string;
 }

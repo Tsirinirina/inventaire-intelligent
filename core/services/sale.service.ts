@@ -58,6 +58,55 @@ export function updateSaleSyncMeta(
   );
 }
 
+/**
+ * Résout les FK locales (productId, accessoryId) en sync_id MongoDB
+ * pour pouvoir envoyer la vente à l'API.
+ * Le sellerSyncId est passé depuis l'orchestrateur (retourné par findOrCreateSeller).
+ * Retourne null si un ID référencé n'a pas encore de sync_id.
+ */
+export function buildSalePayload(
+  db: SQLiteDatabase,
+  sale: Sale,
+  sellerSyncId: string,
+): Record<string, unknown> | null {
+  let productSyncId: string | undefined;
+  if (sale.productId) {
+    const product = db.getFirstSync<{ sync_id: string | null }>(
+      "SELECT sync_id FROM products WHERE id = ?",
+      [sale.productId],
+    );
+    if (!product?.sync_id) return null;
+    productSyncId = product.sync_id;
+  }
+
+  let accessorySyncId: string | undefined;
+  if (sale.accessoryId) {
+    const accessory = db.getFirstSync<{ sync_id: string | null }>(
+      "SELECT sync_id FROM accessories WHERE id = ?",
+      [sale.accessoryId],
+    );
+    if (!accessory?.sync_id) return null;
+    accessorySyncId = accessory.sync_id;
+  }
+
+  return {
+    sellerId: sellerSyncId,
+    productId: productSyncId,
+    accessoryId: accessorySyncId,
+    quantity: sale.quantity,
+    unitPrice: sale.unitPrice,
+    color: sale.color || undefined,
+    imei: sale.imei || undefined,
+    ram: sale.ram || undefined,
+    rom: sale.rom || undefined,
+    apn: sale.apn || undefined,
+    attachmentUri: sale.attachmentUri || undefined,
+    buyerName: sale.buyerName || undefined,
+    buyerCin: sale.buyerCin || undefined,
+    createdAt: sale.createdAt,
+  };
+}
+
 export function updateSale(db: SQLiteDatabase, dto: Sale): boolean {
   db!.runSync(
     `UPDATE sales

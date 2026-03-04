@@ -1,4 +1,7 @@
 import { useAuth } from "@/core/contexts/AuthContext";
+import { ACCESSORY_QUERY_KEY } from "@/core/entity/accessory.entity";
+import { PRODUCT_QUERY_KEY } from "@/core/entity/product.entity";
+import { queryClient } from "@/core/queryClient";
 import { apiClient } from "@/core/services/api/api.client";
 import { countPendingItems, runSync } from "@/core/services/sync.service";
 import { useSyncStore } from "@/core/store/sync.store";
@@ -57,6 +60,10 @@ function phaseLabel(phase: SyncProgress["phase"]): string {
       return "Synchronisation des accessoires…";
     case "sales":
       return "Synchronisation des ventes…";
+    case "pull-products":
+      return "Réception des produits…";
+    case "pull-accessories":
+      return "Réception des accessoires…";
   }
 }
 
@@ -272,6 +279,12 @@ export default function SettingsScreen() {
       setSyncDone(result);
       refreshPending();
 
+      // Invalider les caches React Query si des items ont été tirés du serveur
+      if (result.pulled > 0) {
+        queryClient.invalidateQueries({ queryKey: [PRODUCT_QUERY_KEY] });
+        queryClient.invalidateQueries({ queryKey: [ACCESSORY_QUERY_KEY] });
+      }
+
       if (result.failed > 0) {
         Alert.alert(
           "Sync partielle",
@@ -412,7 +425,14 @@ export default function SettingsScreen() {
               <Text style={styles.syncStatValue}>
                 {lastResult?.synced ?? 0}
               </Text>
-              <Text style={styles.syncStatLabel}>Synchronisés</Text>
+              <Text style={styles.syncStatLabel}>Envoyés</Text>
+            </View>
+            <View style={styles.syncStatDivider} />
+            <View style={styles.syncStat}>
+              <Text style={styles.syncStatValue}>
+                {lastResult?.pulled ?? 0}
+              </Text>
+              <Text style={styles.syncStatLabel}>Reçus</Text>
             </View>
             <View style={styles.syncStatDivider} />
             <View style={styles.syncStat}>

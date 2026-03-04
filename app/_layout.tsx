@@ -7,7 +7,8 @@ import { SaleProvider } from "@/core/contexts/SaleContext";
 import { SellerProvider } from "@/core/contexts/SellerContext";
 import { initDatabase } from "@/core/database";
 import { ThemeProvider } from "@/theme/ThemeProvider";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { queryClient } from "@/core/queryClient";
+import { QueryClientProvider } from "@tanstack/react-query";
 import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
@@ -16,7 +17,6 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 
 SplashScreen.preventAutoHideAsync();
-const queryClient = new QueryClient();
 
 export default function RootLayout() {
   useEffect(() => {

@@ -61,7 +61,7 @@ export default function EditProductScreen() {
       setProduct(foundProduct);
       setValue("brand", foundProduct.brand);
       setValue("name", foundProduct.name);
-      setValue("basePrice", foundProduct.brand.toString());
+      setValue("basePrice", foundProduct.basePrice.toString());
       setValue("category", foundProduct.category);
       setValue("quantity", foundProduct.quantity.toString());
       setImageUri(foundProduct.imageUri);

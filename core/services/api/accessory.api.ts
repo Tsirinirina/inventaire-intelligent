@@ -1,4 +1,5 @@
 import { Accessory } from "@/core/entity/accessory.entity";
+import { ServerAccessory } from "@/core/types/sync.types";
 import { apiClient } from "./api.client";
 
 export interface AccessoryApiResponse {
@@ -21,9 +22,9 @@ export const accessoryApi = {
     );
   },
 
-  fetchSince(since: string): Promise<Accessory[]> {
-    return apiClient.get<Accessory[]>(
-      `/accessories?since=${encodeURIComponent(since)}`,
-    );
+  /** Pull des changements depuis le serveur (sync bidirectionnelle) */
+  fetchSince(since?: string | null): Promise<ServerAccessory[]> {
+    const query = since ? `?since=${encodeURIComponent(since)}` : "";
+    return apiClient.get<ServerAccessory[]>(`/accessories${query}`);
   },
 };

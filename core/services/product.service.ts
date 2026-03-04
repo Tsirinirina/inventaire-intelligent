@@ -1,4 +1,5 @@
 import { NewProduct, Product } from "@/core/entity/product.entity";
+import { ServerProduct } from "@/core/types/sync.types";
 import { SQLiteDatabase } from "expo-sqlite";
 import { addStockMovement } from "./stock_movement.service";
 
@@ -117,4 +118,81 @@ export function updateProductSyncMeta(
 
 export function markProductPending(db: SQLiteDatabase, id: number): void {
   db.runSync(`UPDATE products SET sync_status = 'pending' WHERE id = ?`, [id]);
+}
+
+// ─── Pull sync helpers ──────────────────────────────────────────────────────
+
+/**
+ * Upsert un produit reçu du serveur dans SQLite.
+ *
+ * - Aucun enregistrement local avec ce sync_id → INSERT (sync_status = 'synced')
+ * - Enregistrement local avec sync_status pending/failed → SKIP (ne pas écraser)
+ * - Enregistrement local synced + serveur plus récent → UPDATE (last-write-wins)
+ */
+export function upsertPulledProduct(
+  db: SQLiteDatabase,
+  server: ServerProduct,
+): "inserted" | "updated" | "skipped" {
+  const existing = db.getFirstSync<{
+    id: number;
+    sync_status: string;
+    stockUpdatedAt: string;
+  }>(
+    "SELECT id, sync_status, stockUpdatedAt FROM products WHERE sync_id = ?",
+    [server.syncId],
+  );
+
+  if (!existing) {
+    db.runSync(
+      `INSERT INTO products
+        (name, brand, category, description, basePrice, quantity, imageUri, createdAt, stockUpdatedAt, sync_id, sync_status, synced_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'synced', ?)`,
+      [
+        server.name,
+        server.brand,
+        server.category,
+        server.description || null,
+        server.basePrice,
+        server.quantity,
+        server.imageUri || null,
+        server.createdAt,
+        server.stockUpdatedAt,
+        server.syncId,
+        new Date().toISOString(),
+      ],
+    );
+    return "inserted";
+  }
+
+  if (existing.sync_status === "pending" || existing.sync_status === "failed") {
+    return "skipped";
+  }
+
+  const serverTime = new Date(server.stockUpdatedAt).getTime();
+  const localTime = new Date(existing.stockUpdatedAt).getTime();
+
+  if (serverTime <= localTime) {
+    return "skipped";
+  }
+
+  db.runSync(
+    `UPDATE products
+     SET name = ?, brand = ?, category = ?, description = ?, basePrice = ?,
+         quantity = ?, imageUri = ?, createdAt = ?, stockUpdatedAt = ?, synced_at = ?
+     WHERE id = ?`,
+    [
+      server.name,
+      server.brand,
+      server.category,
+      server.description || null,
+      server.basePrice,
+      server.quantity,
+      server.imageUri || null,
+      server.createdAt,
+      server.stockUpdatedAt,
+      new Date().toISOString(),
+      existing.id,
+    ],
+  );
+  return "updated";
 }

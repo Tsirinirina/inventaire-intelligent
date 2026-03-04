@@ -1,5 +1,6 @@
 import { SQLiteDatabase } from "expo-sqlite";
 import { Accessory, NewAccessory } from "../entity/accessory.entity";
+import { ServerAccessory } from "../types/sync.types";
 import { addStockMovement } from "./stock_movement.service";
 
 /**
@@ -115,4 +116,79 @@ export function updateAccessorySyncMeta(
 
 export function markAccessoryPending(db: SQLiteDatabase, id: number): void {
   db.runSync(`UPDATE accessories SET sync_status = 'pending' WHERE id = ?`, [id]);
+}
+
+// ─── Pull sync helpers ──────────────────────────────────────────────────────
+
+/**
+ * Upsert un accessoire reçu du serveur dans SQLite.
+ *
+ * - Aucun enregistrement local avec ce sync_id → INSERT (sync_status = 'synced')
+ * - Enregistrement local avec sync_status pending/failed → SKIP (ne pas écraser)
+ * - Enregistrement local synced + serveur plus récent → UPDATE (last-write-wins)
+ */
+export function upsertPulledAccessory(
+  db: SQLiteDatabase,
+  server: ServerAccessory,
+): "inserted" | "updated" | "skipped" {
+  const existing = db.getFirstSync<{
+    id: number;
+    sync_status: string;
+    stockUpdatedAt: string;
+  }>(
+    "SELECT id, sync_status, stockUpdatedAt FROM accessories WHERE sync_id = ?",
+    [server.syncId],
+  );
+
+  if (!existing) {
+    db.runSync(
+      `INSERT INTO accessories
+        (name, category, description, basePrice, quantity, imageUri, createdAt, stockUpdatedAt, sync_id, sync_status, synced_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'synced', ?)`,
+      [
+        server.name,
+        server.category,
+        server.description || null,
+        server.basePrice,
+        server.quantity,
+        server.imageUri || null,
+        server.createdAt,
+        server.stockUpdatedAt,
+        server.syncId,
+        new Date().toISOString(),
+      ],
+    );
+    return "inserted";
+  }
+
+  if (existing.sync_status === "pending" || existing.sync_status === "failed") {
+    return "skipped";
+  }
+
+  const serverTime = new Date(server.stockUpdatedAt).getTime();
+  const localTime = new Date(existing.stockUpdatedAt).getTime();
+
+  if (serverTime <= localTime) {
+    return "skipped";
+  }
+
+  db.runSync(
+    `UPDATE accessories
+     SET name = ?, category = ?, description = ?, basePrice = ?,
+         quantity = ?, imageUri = ?, createdAt = ?, stockUpdatedAt = ?, synced_at = ?
+     WHERE id = ?`,
+    [
+      server.name,
+      server.category,
+      server.description || null,
+      server.basePrice,
+      server.quantity,
+      server.imageUri || null,
+      server.createdAt,
+      server.stockUpdatedAt,
+      new Date().toISOString(),
+      existing.id,
+    ],
+  );
+  return "updated";
 }

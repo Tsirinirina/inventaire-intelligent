@@ -9,9 +9,18 @@ import { uploadImage } from "./api/image.api";
 import {
   getPendingAccessories,
   updateAccessorySyncMeta,
+  upsertPulledAccessory,
 } from "./accessories.service";
-import { getPendingProducts, updateProductSyncMeta } from "./product.service";
-import { getPendingSales, updateSaleSyncMeta } from "./sale.service";
+import {
+  getPendingProducts,
+  updateProductSyncMeta,
+  upsertPulledProduct,
+} from "./product.service";
+import {
+  buildSalePayload,
+  getPendingSales,
+  updateSaleSyncMeta,
+} from "./sale.service";
 
 export interface SyncOptions {
   onProgress?: (p: SyncProgress) => void;
@@ -34,7 +43,7 @@ export interface SyncOptions {
  */
 export async function runSync(options: SyncOptions): Promise<SyncResult> {
   const db = getDatabase();
-  const result: SyncResult = { synced: 0, failed: 0, errors: [] };
+  const result: SyncResult = { synced: 0, failed: 0, errors: [], pulled: 0 };
 
   const notify = (phase: SyncPhase, current: number, total: number) => {
     options.onProgress?.({ phase, current, total });
@@ -42,7 +51,8 @@ export async function runSync(options: SyncOptions): Promise<SyncResult> {
 
   // ── 0. Authentification serveur ─────────────────────────────────────────
   // Crée le vendeur côté serveur s'il n'existe pas, puis obtient un JWT.
-  await authApi.findOrCreateSeller(options.sellerName, options.sellerPasscode);
+  const sellerRes = await authApi.findOrCreateSeller(options.sellerName, options.sellerPasscode);
+  const sellerSyncId = sellerRes.syncId; // MongoDB ObjectId du vendeur
   const loginRes = await authApi.login(options.sellerName, options.sellerPasscode);
   useSyncStore.getState().setAuthToken(loginRes.token);
 
@@ -50,11 +60,6 @@ export async function runSync(options: SyncOptions): Promise<SyncResult> {
   const pendingProducts = getPendingProducts(db);
   const pendingAccessories = getPendingAccessories(db);
   const pendingSales = getPendingSales(db);
-  const total =
-    pendingProducts.length + pendingAccessories.length + pendingSales.length;
-
-  if (total === 0) return result;
-
   // ── 1. Produits ───────────────────────────────────────────────────────────
   for (let i = 0; i < pendingProducts.length; i++) {
     const product = pendingProducts[i];
@@ -124,7 +129,17 @@ export async function runSync(options: SyncOptions): Promise<SyncResult> {
     const sale = pendingSales[i];
     notify("sales", i, pendingSales.length);
     try {
-      const res = await saleApi.create(sale);
+      // Mapper les IDs locaux SQLite → sync_ids MongoDB
+      const payload = buildSalePayload(db, sale, sellerSyncId);
+      if (!payload) {
+        // Produit/accessoire pas encore synchronisé → on skip cette vente
+        result.failed++;
+        result.errors.push(
+          `Vente #${sale.id} : produit ou accessoire pas encore synchronisé`,
+        );
+        continue;
+      }
+      const res = await saleApi.create(payload as any);
       updateSaleSyncMeta(db, sale.id, res.syncId, "synced");
       result.synced++;
     } catch (err) {
@@ -134,6 +149,48 @@ export async function runSync(options: SyncOptions): Promise<SyncResult> {
         `Vente #${sale.id} : ${err instanceof Error ? err.message : String(err)}`,
       );
     }
+  }
+
+  // ══════════════════════════════════════════════════════════════════════════
+  // ── 4. PULL Produits depuis le serveur ──────────────────────────────────
+  // ══════════════════════════════════════════════════════════════════════════
+  try {
+    const lastSyncAt = useSyncStore.getState().lastSyncAt;
+    const serverProducts = await productApi.fetchSince(lastSyncAt);
+    notify("pull-products", 0, serverProducts.length);
+
+    for (let i = 0; i < serverProducts.length; i++) {
+      notify("pull-products", i + 1, serverProducts.length);
+      const action = upsertPulledProduct(db, serverProducts[i]);
+      if (action !== "skipped") {
+        result.pulled++;
+      }
+    }
+  } catch (err) {
+    result.errors.push(
+      `Pull produits : ${err instanceof Error ? err.message : String(err)}`,
+    );
+  }
+
+  // ══════════════════════════════════════════════════════════════════════════
+  // ── 5. PULL Accessoires depuis le serveur ───────────────────────────────
+  // ══════════════════════════════════════════════════════════════════════════
+  try {
+    const lastSyncAt = useSyncStore.getState().lastSyncAt;
+    const serverAccessories = await accessoryApi.fetchSince(lastSyncAt);
+    notify("pull-accessories", 0, serverAccessories.length);
+
+    for (let i = 0; i < serverAccessories.length; i++) {
+      notify("pull-accessories", i + 1, serverAccessories.length);
+      const action = upsertPulledAccessory(db, serverAccessories[i]);
+      if (action !== "skipped") {
+        result.pulled++;
+      }
+    }
+  } catch (err) {
+    result.errors.push(
+      `Pull accessoires : ${err instanceof Error ? err.message : String(err)}`,
+    );
   }
 
   return result;
