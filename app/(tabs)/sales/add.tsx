@@ -43,7 +43,6 @@ export default function AddToCartScreen() {
   const { item: itemStr } = useLocalSearchParams<{ item: string }>();
 
   const item: SellableItem = JSON.parse(itemStr);
-  console.log("ITEM = ", item);
   const { currentSeller } = useAuth();
   const addItem = useCartStore((s) => s.addItem);
 
