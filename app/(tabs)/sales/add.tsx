@@ -1,7 +1,7 @@
+import NumberScanner from "@/components/scanner/NumberScanner";
 import { useAuth } from "@/core/contexts/AuthContext";
 import { SellableItem } from "@/core/entity/sale.entity";
 import { CartItem, useCartStore } from "@/core/store/cart.store";
-import NumberScanner from "@/components/scanner/NumberScanner";
 import { useTheme } from "@/theme/ThemeProvider";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Check, CheckCircle, ScanLine } from "lucide-react-native";
@@ -15,6 +15,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { formatAriary } from "../../../core/utils/currency.utils";
 
 const RAM_VALUES = [1, 2, 3, 4, 6, 8, 12, 16] as const;
 const ROM_VALUES = [16, 32, 64, 128, 256, 512, 1024] as const;
@@ -40,7 +41,9 @@ export default function AddToCartScreen() {
   const styles = useMemo(() => createStyles(colors), [colors]);
 
   const { item: itemStr } = useLocalSearchParams<{ item: string }>();
+
   const item: SellableItem = JSON.parse(itemStr);
+  console.log("ITEM = ", item);
   const { currentSeller } = useAuth();
   const addItem = useCartStore((s) => s.addItem);
 
@@ -114,12 +117,21 @@ export default function AddToCartScreen() {
       </View>
 
       {/* Sous-total dynamique */}
+
+      {item.basePrice && (
+        <View style={styles.subtotalBanner}>
+          <Text style={styles.subtotalLabel}>Prix de base</Text>
+          <Text style={styles.subtotalValue}>
+            {formatAriary(item.basePrice)} Ar
+          </Text>
+        </View>
+      )}
+
+      {/* Sous-total dynamique */}
       {qty > 0 && price > 0 && (
         <View style={styles.subtotalBanner}>
           <Text style={styles.subtotalLabel}>Sous-total</Text>
-          <Text style={styles.subtotalValue}>
-            {subtotal.toLocaleString()} Ar
-          </Text>
+          <Text style={styles.subtotalValue}>{formatAriary(subtotal)} Ar</Text>
         </View>
       )}
 
@@ -188,7 +200,8 @@ export default function AddToCartScreen() {
       <View style={styles.colorGrid}>
         {PRESET_COLORS.map((c) => {
           const isSelected = color === c.name;
-          const isLight = c.hex === "#F5F5F7" || c.hex === "#FDD835" || c.hex === "#D4AF37";
+          const isLight =
+            c.hex === "#F5F5F7" || c.hex === "#FDD835" || c.hex === "#D4AF37";
           return (
             <TouchableOpacity
               key={c.name}
@@ -201,7 +214,11 @@ export default function AddToCartScreen() {
               activeOpacity={0.75}
             >
               {isSelected && (
-                <Check size={16} color={isLight ? "#000" : "#fff"} strokeWidth={3} />
+                <Check
+                  size={16}
+                  color={isLight ? "#000" : "#fff"}
+                  strokeWidth={3}
+                />
               )}
             </TouchableOpacity>
           );
@@ -212,7 +229,9 @@ export default function AddToCartScreen() {
         <>
           <View style={styles.chipLabelRow}>
             <Text style={styles.label}>RAM (Go)</Text>
-            {ram !== null && <Text style={styles.chipLabelValue}>{ram} Go</Text>}
+            {ram !== null && (
+              <Text style={styles.chipLabelValue}>{ram} Go</Text>
+            )}
           </View>
           <View style={styles.chipRow}>
             {RAM_VALUES.map((v) => {
@@ -224,7 +243,12 @@ export default function AddToCartScreen() {
                   onPress={() => setRam(isSelected ? null : v)}
                   activeOpacity={0.75}
                 >
-                  <Text style={[styles.chipText, isSelected && styles.chipTextSelected]}>
+                  <Text
+                    style={[
+                      styles.chipText,
+                      isSelected && styles.chipTextSelected,
+                    ]}
+                  >
                     {v}
                   </Text>
                 </TouchableOpacity>
@@ -251,7 +275,12 @@ export default function AddToCartScreen() {
                   onPress={() => setRom(isSelected ? null : v)}
                   activeOpacity={0.75}
                 >
-                  <Text style={[styles.chipText, isSelected && styles.chipTextSelected]}>
+                  <Text
+                    style={[
+                      styles.chipText,
+                      isSelected && styles.chipTextSelected,
+                    ]}
+                  >
                     {label}
                   </Text>
                 </TouchableOpacity>
