@@ -1,3 +1,4 @@
+import { useToast } from "@/components/ui/Toast";
 import { useAuth } from "@/core/contexts/AuthContext";
 import { ACCESSORY_QUERY_KEY } from "@/core/entity/accessory.entity";
 import { PRODUCT_QUERY_KEY } from "@/core/entity/product.entity";
@@ -8,6 +9,7 @@ import { useSyncStore } from "@/core/store/sync.store";
 import { SyncProgress } from "@/core/types/sync.types";
 import { useTheme } from "@/theme/ThemeProvider";
 import { ThemeColors } from "@/theme/colors";
+import * as Clipboard from "expo-clipboard";
 import { LinearGradient } from "expo-linear-gradient";
 import {
   AlertTriangle,
@@ -15,28 +17,26 @@ import {
   ChevronRight,
   Cloud,
   CloudOff,
-  Loader,
+  LucideLogOut,
   Moon,
   RefreshCw,
-  Settings,
   Smartphone,
   Sun,
-  User,
+  UserCheck,
   Wifi,
 } from "lucide-react-native";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   Pressable,
   ScrollView,
   StyleSheet,
   Text,
   TextInput,
+  TouchableOpacity,
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 function formatDate(iso: string | null): string {
@@ -177,14 +177,15 @@ function Row({
       {value ? (
         <Text style={{ fontSize: 13, color: colors.textMuted }}>{value}</Text>
       ) : null}
-      {onPress ? (
-        <ChevronRight size={16} color={colors.textMuted} />
-      ) : null}
+      {onPress ? <ChevronRight size={16} color={colors.textMuted} /> : null}
     </View>
   );
 
   return onPress ? (
-    <Pressable onPress={onPress} style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}>
+    <Pressable
+      onPress={onPress}
+      style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
+    >
       {inner}
     </Pressable>
   ) : (
@@ -197,8 +198,8 @@ function Row({
 export default function SettingsScreen() {
   const { colors, mode, setMode } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
-  const { currentSeller } = useAuth();
-
+  const { currentSeller, logout } = useAuth();
+  const { showToast } = useToast();
   const {
     serverUrl,
     authToken,
@@ -215,6 +216,7 @@ export default function SettingsScreen() {
   } = useSyncStore();
 
   const [urlInput, setUrlInput] = useState(serverUrl);
+
   const [pendingCount, setPendingCount] = useState(0);
   const [isTesting, setIsTesting] = useState(false);
 
@@ -236,17 +238,26 @@ export default function SettingsScreen() {
     // Appliquer l'URL courante du champ avant de tester
     const cleanUrl = urlInput.trim().replace(/\/$/, "");
     if (!cleanUrl) {
-      Alert.alert("URL manquante", "Saisissez l'URL du serveur d'abord.\nEx: http://192.168.1.112:3000");
+      showToast(
+        "error",
+        "Saisissez l'URL du serveur d'abord.\nEx: https://inventaire-intelligent-api.vercel.app",
+        "URL manquante",
+      );
+
       return;
     }
     setServerUrl(cleanUrl);
     setIsTesting(true);
     try {
       await apiClient.get<{ status: string; timestamp: string }>("/health");
-      Alert.alert("Connexion OK ✓", `Le serveur ${cleanUrl} répond correctement.`);
+      showToast("success", `Le serveur ${cleanUrl} répond correctement.`);
+      // Alert.alert(
+      //   "Connexion OK ✓",
+      //   `Le serveur ${cleanUrl} répond correctement.`,
+      // );
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Erreur inconnue";
-      Alert.alert("Connexion échouée ✗", msg);
+      showToast("error", msg);
     } finally {
       setIsTesting(false);
     }
@@ -258,13 +269,17 @@ export default function SettingsScreen() {
     // (au cas où onBlur n'a pas encore tiré)
     const cleanUrl = urlInput.trim().replace(/\/$/, "");
     if (!cleanUrl) {
-      Alert.alert("URL manquante", "Configurez l'URL du serveur d'abord.\nEx: http://192.168.1.112:3000");
+      showToast(
+        "error",
+        "Configurez l'URL du serveur d'abord.\nEx: https://inventaire-intelligent-api.vercel.app",
+      );
+
       return;
     }
     setServerUrl(cleanUrl);
 
     if (!currentSeller) {
-      Alert.alert("Non connecté", "Veuillez vous connecter d'abord.");
+      showToast("error", "Veuillez vous connecter d'abord.");
       return;
     }
     if (runStatus === "syncing") return;
@@ -286,25 +301,30 @@ export default function SettingsScreen() {
       }
 
       if (result.failed > 0) {
-        Alert.alert(
-          "Sync partielle",
+        showToast(
+          "info",
           `${result.synced} synchronisé(s), ${result.failed} échec(s).\n\n${result.errors.slice(0, 3).join("\n")}`,
         );
       }
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Erreur inconnue";
       setSyncError(msg);
-      Alert.alert("Erreur de synchronisation", msg);
+      showToast("error", "Erreur de synchronisation");
     }
   };
 
+  const handleCopyUrl = async (text: string) => {
+    await Clipboard.setStringAsync(text);
+  };
+
   // ── Initiales du vendeur ───────────────────────────────────────────────────
-  const initials = currentSeller?.name
-    .split(" ")
-    .map((w) => w[0])
-    .join("")
-    .toUpperCase()
-    .slice(0, 2) ?? "V";
+  const initials =
+    currentSeller?.name
+      .split(" ")
+      .map((w) => w[0])
+      .join("")
+      .toUpperCase()
+      .slice(0, 2) ?? "V";
 
   const isSyncing = runStatus === "syncing";
 
@@ -319,9 +339,9 @@ export default function SettingsScreen() {
         {/* ── Header ── */}
         <View style={styles.header}>
           <Text style={styles.headerTitle}>Paramètres</Text>
-          <View style={styles.headerIcon}>
-            <Settings size={18} color={colors.primary} />
-          </View>
+          <TouchableOpacity style={styles.headerIcon} onPress={logout}>
+            <LucideLogOut size={18} color={colors.primary} />
+          </TouchableOpacity>
         </View>
 
         {/* ════════════════════════════════════════
@@ -398,7 +418,7 @@ export default function SettingsScreen() {
                 value={urlInput}
                 onChangeText={setUrlInput}
                 onBlur={() => setServerUrl(urlInput)}
-                placeholder="http://192.168.1.10:3000"
+                placeholder="https://inventaire-intelligent-api.vercel.app"
                 placeholderTextColor={colors.inputPlaceholder}
                 autoCapitalize="none"
                 autoCorrect={false}
@@ -520,15 +540,24 @@ export default function SettingsScreen() {
         <SectionHeader title="À propos" colors={colors} />
         <Card colors={colors}>
           <Row
+            icon={<UserCheck size={16} color={colors.primary} />}
+            label="Tsirinirina Rajaonarison"
+            value="Dev"
+            colors={colors}
+          />
+          <Row
             icon={<Smartphone size={16} color={colors.primary} />}
-            label="Inventaire Intelligent"
-            value="v1.0.0"
+            label="i-varotra app"
+            value="v2.1.0"
             colors={colors}
           />
           <Row
             icon={<Cloud size={16} color={colors.primary} />}
-            label="Sync NestJS + MongoDB"
-            value="Prêt"
+            label="https://inventaire-intelligent-api.vercel.app"
+            value="API"
+            onPress={() =>
+              handleCopyUrl("https://inventaire-intelligent-api.vercel.app")
+            }
             colors={colors}
             isLast
           />

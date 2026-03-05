@@ -26,9 +26,8 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
         name,
         passcode,
       });
-      if (!seller) throw new Error("Login échoué");
-
-      console.log("login = ", seller);
+      if (!seller)
+        throw new Error("L'utilisateur ou le mot de passe est incorrect.");
 
       await AsyncStorage.setItem(ASYNC_STORAGE_SELLER_KEY, String(seller?.id));
 

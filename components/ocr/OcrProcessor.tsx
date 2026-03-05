@@ -1,11 +1,11 @@
 import * as ImageManipulator from "expo-image-manipulator";
 import React, { useState } from "react";
 import {
-    ActivityIndicator,
-    Button,
-    StyleSheet,
-    Text,
-    View,
+  ActivityIndicator,
+  Button,
+  StyleSheet,
+  Text,
+  View,
 } from "react-native";
 import Tesseract from "tesseract.js";
 
@@ -31,7 +31,6 @@ export default function OcrProcessor({ image }: any) {
       const {
         data: { text },
       } = await Tesseract.recognize(manipulatedImage.uri, "eng", {});
-      console.log("OCR = ", text);
 
       // 🔹 Filtrer uniquement chiffres
       const numbersOnly = text.replace(/[^0-9]/g, "");

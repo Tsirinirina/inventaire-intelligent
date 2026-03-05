@@ -1,8 +1,8 @@
+import { apiClient } from "@/core/services/api/api.client";
+import { SyncProgress, SyncResult } from "@/core/types/sync.types";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
-import { SyncProgress, SyncResult } from "@/core/types/sync.types";
-import { apiClient } from "@/core/services/api/api.client";
 
 export type SyncRunStatus = "idle" | "syncing" | "success" | "error";
 
@@ -34,7 +34,7 @@ export const useSyncStore = create<SyncState>()(
   persist(
     (set) => ({
       // ── État initial ──
-      serverUrl: "",
+      serverUrl: "https://inventaire-intelligent-api.vercel.app",
       authToken: null,
       runStatus: "idle",
       lastSyncAt: null,

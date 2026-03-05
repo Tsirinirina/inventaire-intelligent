@@ -1,6 +1,6 @@
+import { useAccessory } from "@/core/contexts/AccessoryContext";
 import { useInventory } from "@/core/contexts/InventoryContext";
 import { useProduct } from "@/core/contexts/ProductContext";
-import { useAccessory } from "@/core/contexts/AccessoryContext";
 import { useSale } from "@/core/contexts/SaleContext";
 import { formatAriary } from "@/core/utils/currency.utils";
 import { useTheme } from "@/theme/ThemeProvider";
@@ -26,7 +26,7 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import Svg, { Circle, Path, Rect, Line } from "react-native-svg";
+import Svg, { Circle, Path, Rect } from "react-native-svg";
 
 // ─── Illustrations SVG ───────────────────────────────────────────────
 
@@ -37,10 +37,31 @@ function WalletIllustration() {
       <Circle cx="80" cy="60" r="22" fill="rgba(255,255,255,0.05)" />
       <Circle cx="20" cy="75" r="28" fill="rgba(255,255,255,0.06)" />
       {/* Wallet body */}
-      <Rect x="18" y="32" width="50" height="34" rx="7" fill="rgba(255,255,255,0.22)" />
-      <Rect x="18" y="32" width="50" height="12" rx="7" fill="rgba(255,255,255,0.30)" />
+      <Rect
+        x="18"
+        y="32"
+        width="50"
+        height="34"
+        rx="7"
+        fill="rgba(255,255,255,0.22)"
+      />
+      <Rect
+        x="18"
+        y="32"
+        width="50"
+        height="12"
+        rx="7"
+        fill="rgba(255,255,255,0.30)"
+      />
       {/* Coin slot */}
-      <Rect x="52" y="43" width="16" height="12" rx="6" fill="rgba(255,255,255,0.35)" />
+      <Rect
+        x="52"
+        y="43"
+        width="16"
+        height="12"
+        rx="6"
+        fill="rgba(255,255,255,0.35)"
+      />
       <Circle cx="60" cy="49" r="3" fill="rgba(255,255,255,0.7)" />
     </Svg>
   );
@@ -50,10 +71,31 @@ function PhoneIllustration() {
   return (
     <Svg width={56} height={56} viewBox="0 0 56 56">
       <Circle cx="28" cy="28" r="26" fill="rgba(255,255,255,0.10)" />
-      <Rect x="17" y="8" width="22" height="38" rx="5" fill="rgba(255,255,255,0.25)" />
-      <Rect x="20" y="13" width="16" height="22" rx="2" fill="rgba(255,255,255,0.3)" />
+      <Rect
+        x="17"
+        y="8"
+        width="22"
+        height="38"
+        rx="5"
+        fill="rgba(255,255,255,0.25)"
+      />
+      <Rect
+        x="20"
+        y="13"
+        width="16"
+        height="22"
+        rx="2"
+        fill="rgba(255,255,255,0.3)"
+      />
       <Circle cx="28" cy="42" r="2.5" fill="rgba(255,255,255,0.6)" />
-      <Rect x="24" y="10" width="8" height="1.5" rx="1" fill="rgba(255,255,255,0.5)" />
+      <Rect
+        x="24"
+        y="10"
+        width="8"
+        height="1.5"
+        rx="1"
+        fill="rgba(255,255,255,0.5)"
+      />
     </Svg>
   );
 }
@@ -70,8 +112,22 @@ function AccessoryIllustration() {
         fill="none"
         strokeLinecap="round"
       />
-      <Rect x="10" y="29" width="8" height="12" rx="4" fill="rgba(255,255,255,0.4)" />
-      <Rect x="38" y="29" width="8" height="12" rx="4" fill="rgba(255,255,255,0.4)" />
+      <Rect
+        x="10"
+        y="29"
+        width="8"
+        height="12"
+        rx="4"
+        fill="rgba(255,255,255,0.4)"
+      />
+      <Rect
+        x="38"
+        y="29"
+        width="8"
+        height="12"
+        rx="4"
+        fill="rgba(255,255,255,0.4)"
+      />
     </Svg>
   );
 }
@@ -79,10 +135,38 @@ function AccessoryIllustration() {
 function BarChartIllustration() {
   return (
     <Svg width={64} height={44} viewBox="0 0 64 44">
-      <Rect x="4"  y="28" width="11" height="14" rx="3" fill="rgba(255,255,255,0.4)" />
-      <Rect x="19" y="18" width="11" height="24" rx="3" fill="rgba(255,255,255,0.55)" />
-      <Rect x="34" y="8"  width="11" height="34" rx="3" fill="rgba(255,255,255,0.75)" />
-      <Rect x="49" y="14" width="11" height="28" rx="3" fill="rgba(255,255,255,0.6)" />
+      <Rect
+        x="4"
+        y="28"
+        width="11"
+        height="14"
+        rx="3"
+        fill="rgba(255,255,255,0.4)"
+      />
+      <Rect
+        x="19"
+        y="18"
+        width="11"
+        height="24"
+        rx="3"
+        fill="rgba(255,255,255,0.55)"
+      />
+      <Rect
+        x="34"
+        y="8"
+        width="11"
+        height="34"
+        rx="3"
+        fill="rgba(255,255,255,0.75)"
+      />
+      <Rect
+        x="49"
+        y="14"
+        width="11"
+        height="28"
+        rx="3"
+        fill="rgba(255,255,255,0.6)"
+      />
       {/* Trend line */}
       <Path
         d="M10 30 L25 22 L40 12 L55 18"
@@ -149,14 +233,22 @@ export default function DashboardScreen() {
         >
           <View style={styles.heroContent}>
             <View style={styles.heroLeft}>
-              <Text style={styles.heroLabel}>Valeur d'inventaire</Text>
-              <Text style={styles.heroAmount} numberOfLines={1} adjustsFontSizeToFit>
+              <Text style={styles.heroLabel}>Valeur d&apos;inventaire</Text>
+              <Text
+                style={styles.heroAmount}
+                numberOfLines={1}
+                adjustsFontSizeToFit
+              >
                 {formatAriary(stats.totalGain)}
               </Text>
               <View style={styles.heroRow}>
                 <View style={styles.heroStat}>
                   <TrendingUp size={12} color="rgba(255,255,255,0.7)" />
-                  <Text style={styles.heroStatLabel}>{stats.totalRevenue > 0 ? formatAriary(stats.totalRevenue) : "—"}</Text>
+                  <Text style={styles.heroStatLabel}>
+                    {stats.totalRevenue > 0
+                      ? formatAriary(stats.totalRevenue)
+                      : "—"}
+                  </Text>
                   <Text style={styles.heroStatSub}>revenus</Text>
                 </View>
                 <View style={styles.heroStatDivider} />
@@ -176,7 +268,9 @@ export default function DashboardScreen() {
           <View style={styles.todayRow}>
             <View style={styles.todayBadge}>
               <Text style={styles.todayText}>
-                Aujourd'hui · {stats.todaySales} vente{stats.todaySales !== 1 ? "s" : ""} · {formatAriary(stats.todayRevenue)}
+                Aujourd&apos;hui · {stats.todaySales} vente
+                {stats.todaySales !== 1 ? "s" : ""} ·{" "}
+                {formatAriary(stats.todayRevenue)}
               </Text>
             </View>
           </View>
@@ -194,7 +288,9 @@ export default function DashboardScreen() {
               <View style={styles.statCardInfo}>
                 <Text style={styles.statCardLabel}>Produits</Text>
                 <Text style={styles.statCardValue}>{stats.totalProducts}</Text>
-                <Text style={styles.statCardSub}>{stats.totalProductStock} en stock</Text>
+                <Text style={styles.statCardSub}>
+                  {stats.totalProductStock} en stock
+                </Text>
               </View>
               <PhoneIllustration />
             </View>
@@ -216,7 +312,9 @@ export default function DashboardScreen() {
               <View style={styles.statCardInfo}>
                 <Text style={styles.statCardLabel}>Accessoires</Text>
                 <Text style={styles.statCardValue}>{stats.totalAccessory}</Text>
-                <Text style={styles.statCardSub}>{stats.totalAccessoryStock} en stock</Text>
+                <Text style={styles.statCardSub}>
+                  {stats.totalAccessoryStock} en stock
+                </Text>
               </View>
               <AccessoryIllustration />
             </View>
@@ -239,7 +337,9 @@ export default function DashboardScreen() {
           <View style={styles.salesCardContent}>
             <View style={styles.salesLeft}>
               <Text style={styles.salesLabel}>Performance des ventes</Text>
-              <Text style={styles.salesRevenue}>{formatAriary(stats.totalRevenue)}</Text>
+              <Text style={styles.salesRevenue}>
+                {formatAriary(stats.totalRevenue)}
+              </Text>
               <View style={styles.salesStats}>
                 <View style={styles.salesStat}>
                   <Text style={styles.salesStatValue}>{stats.totalSales}</Text>
@@ -249,7 +349,9 @@ export default function DashboardScreen() {
                 <View style={styles.salesStat}>
                   <Text style={styles.salesStatValue}>
                     {stats.totalSales > 0
-                      ? formatAriary(Math.round(stats.totalRevenue / stats.totalSales))
+                      ? formatAriary(
+                          Math.round(stats.totalRevenue / stats.totalSales),
+                        )
                       : "—"}
                   </Text>
                   <Text style={styles.salesStatLabel}>Moyenne</Text>
@@ -270,16 +372,19 @@ export default function DashboardScreen() {
         </LinearGradient>
 
         {/* ── Alertes stock faible ── */}
-        {(stats.lowStockProducts.length > 0 || stats.lowStockAccessories.length > 0) && (
+        {(stats.lowStockProducts.length > 0 ||
+          stats.lowStockAccessories.length > 0) && (
           <View style={styles.alertCard}>
             <View style={styles.alertHeader}>
               <View style={styles.alertDot} />
               <Text style={styles.alertTitle}>Stocks faibles</Text>
             </View>
             <Text style={styles.alertSub}>
-              {stats.lowStockProducts.length} produit{stats.lowStockProducts.length !== 1 ? "s" : ""}
+              {stats.lowStockProducts.length} produit
+              {stats.lowStockProducts.length !== 1 ? "s" : ""}
               {" · "}
-              {stats.lowStockAccessories.length} accessoire{stats.lowStockAccessories.length !== 1 ? "s" : ""}
+              {stats.lowStockAccessories.length} accessoire
+              {stats.lowStockAccessories.length !== 1 ? "s" : ""}
             </Text>
           </View>
         )}

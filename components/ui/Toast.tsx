@@ -11,24 +11,28 @@ type ToastType = "success" | "error" | "info";
 interface ToastMessage {
   id: string;
   type: ToastType;
+  title?: string;
   message: string;
 }
 
 interface ToastContextValue {
-  showToast: (type: ToastType, message: string) => void;
+  showToast: (type: ToastType, message: string, title?: string) => void;
 }
 
 export const [ToastProvider, useToast] = createContextHook<ToastContextValue>(
   () => {
     const [toasts, setToasts] = useState<ToastMessage[]>([]);
 
-    const showToast = useCallback((type: ToastType, message: string) => {
-      const id = Date.now().toString();
-      setToasts((prev) => [...prev, { id, type, message }]);
-      setTimeout(() => {
-        setToasts((prev) => prev.filter((t) => t.id !== id));
-      }, 3000);
-    }, []);
+    const showToast = useCallback(
+      (type: ToastType, message: string, title?: string) => {
+        const id = Date.now().toString();
+        setToasts((prev) => [...prev, { id, type, message, title }]);
+        setTimeout(() => {
+          setToasts((prev) => prev.filter((t) => t.id !== id));
+        }, 3000);
+      },
+      [],
+    );
 
     return {
       showToast,
@@ -149,9 +153,15 @@ function ToastItem({
       >
         {iconMap[toast.type]}
       </View>
+      {toast.title && (
+        <AppText weight="600" style={styles.toastTitle}>
+          {toast.title}
+        </AppText>
+      )}
       <AppText weight="500" style={styles.toastText} numberOfLines={2}>
         {toast.message}
       </AppText>
+
       <TouchableOpacity onPress={onDismiss} hitSlop={8}>
         <X size={16} color={colors.textMuted} />
       </TouchableOpacity>
@@ -186,6 +196,10 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     alignItems: "center",
     justifyContent: "center",
+  },
+  toastTitle: {
+    flex: 1,
+    fontSize: 12,
   },
   toastText: {
     flex: 1,

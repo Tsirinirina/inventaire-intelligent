@@ -1,3 +1,5 @@
+import OtpInput from "@/components/ui/OtpInput";
+import { useToast } from "@/components/ui/Toast";
 import { useAuth } from "@/core/contexts/AuthContext";
 import {
   LoginForm,
@@ -27,6 +29,7 @@ export default function LoginScreen() {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const router = useRouter();
+  const { showToast } = useToast();
 
   const {
     control,
@@ -41,9 +44,14 @@ export default function LoginScreen() {
   const onSubmit = async (data: LoginForm) => {
     try {
       await login(data.name.trim(), data.passcode);
+      showToast("success", "Connexion réussie");
       router.replace("/(tabs)/dashboard");
     } catch (error) {
-      console.log("Erreur login :", error);
+      if (error instanceof Error) {
+        showToast("error", error.message);
+      } else {
+        showToast("error", "Une erreur de connexion.");
+      }
     }
   };
 
@@ -83,21 +91,20 @@ export default function LoginScreen() {
             )}
 
             {/* PASSCODE */}
+
             <Controller
               control={control}
               name="passcode"
               render={({ field: { onChange, value } }) => (
-                <TextInput
-                  style={[styles.input, errors.passcode && styles.inputError]}
-                  placeholder="Code secret"
-                  placeholderTextColor={colors.inputPlaceholder}
-                  secureTextEntry
-                  keyboardType="number-pad"
-                  value={value}
-                  onChangeText={onChange}
+                <OtpInput
+                  control={control}
+                  name="passcode"
+                  errors={errors}
+                  length={4} // optionnel, 6 par défaut
                 />
               )}
             />
+
             {errors.passcode && (
               <Text style={styles.errorText}>{errors.passcode.message}</Text>
             )}
