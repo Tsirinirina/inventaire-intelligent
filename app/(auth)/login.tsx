@@ -8,6 +8,7 @@ import { useTheme } from "@/theme/ThemeProvider";
 import { ThemeColors } from "@/theme/colors";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "expo-router";
+import { useMemo } from "react";
 import { Controller, useForm } from "react-hook-form";
 import {
   KeyboardAvoidingView,
@@ -20,7 +21,6 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useMemo } from "react";
 
 export default function LoginScreen() {
   const { login, loginError, loginLoading } = useAuth();
@@ -122,7 +122,10 @@ export default function LoginScreen() {
           </View>
 
           <Text style={styles.footer}>
-            © {new Date().getFullYear()} · Inventory App
+            © {new Date().getFullYear()} i-varotra App
+          </Text>
+          <Text style={styles.name}>
+            Développé par Tsirinirina Rajaonarison
           </Text>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -211,6 +214,13 @@ const createStyles = (colors: ThemeColors) =>
       textAlign: "center",
       marginTop: 32,
       fontSize: 12,
+      color: colors.textMuted,
+    },
+    name: {
+      textAlign: "center",
+      marginTop: 32,
+      fontSize: 12,
+      fontWeight: "400",
       color: colors.textMuted,
     },
   });
