@@ -5,9 +5,24 @@ import { useEffect, useState } from "react";
 import { getDatabase } from "../database";
 import { Seller, SELLER_QUERY_KEY } from "../entity/seller.entity";
 import { useLoginSellerQuery } from "../queries/seller.query";
-import { getSellerById } from "../services/seller.service";
+import { getSellerById, upsertLocalSellerSession } from "../services/seller.service";
 
 export const ASYNC_STORAGE_SELLER_KEY = "sellerId";
+
+function isStoredSeller(value: unknown): value is Seller {
+  if (!value || typeof value !== "object") return false;
+
+  const candidate = value as Partial<Seller>;
+  return (
+    typeof candidate.id === "number" &&
+    typeof candidate.name === "string" &&
+    (candidate.passcode === undefined ||
+      typeof candidate.passcode === "string") &&
+    (candidate.syncId === undefined ||
+      candidate.syncId === null ||
+      typeof candidate.syncId === "string")
+  );
+}
 
 export const [AuthProvider, useAuth] = createContextHook(() => {
   const queryClient = useQueryClient();
@@ -29,10 +44,26 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
       if (!seller)
         throw new Error("L'utilisateur ou le mot de passe est incorrect.");
 
-      await AsyncStorage.setItem(ASYNC_STORAGE_SELLER_KEY, String(seller?.id));
+      const localSeller = upsertLocalSellerSession(db, seller.name, passcode);
+      const sessionSeller: Seller = {
+        ...localSeller,
+        name: seller.name,
+        passcode,
+        syncId: seller.syncId,
+      };
 
-      setCurrentSeller(seller);
-      return seller;
+      await AsyncStorage.setItem(
+        ASYNC_STORAGE_SELLER_KEY,
+        JSON.stringify(sessionSeller),
+      );
+
+      queryClient.setQueryData(
+        [SELLER_QUERY_KEY, "id", sessionSeller.id],
+        sessionSeller,
+      );
+
+      setCurrentSeller(sessionSeller);
+      return sessionSeller;
     } catch (error) {
       throw error;
     }
@@ -43,25 +74,38 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
    */
   const restoreSession = async () => {
     try {
-      const sellerId = await AsyncStorage.getItem(ASYNC_STORAGE_SELLER_KEY);
-      if (!sellerId) return;
+      const storedSession = await AsyncStorage.getItem(ASYNC_STORAGE_SELLER_KEY);
+      if (!storedSession) return;
 
-      let seller: Seller | null | undefined = queryClient.getQueryData<Seller>([
-        SELLER_QUERY_KEY,
-        Number(sellerId),
-      ]);
-      if (!seller) {
-        seller = await getSellerById(db, Number(sellerId));
-        if (seller)
+      let parsedSession: unknown = null;
+      try {
+        parsedSession = JSON.parse(storedSession);
+        if (isStoredSeller(parsedSession)) {
+          setCurrentSeller(parsedSession);
           queryClient.setQueryData(
-            [SELLER_QUERY_KEY, Number(sellerId)],
-            seller,
+            [SELLER_QUERY_KEY, "id", parsedSession.id],
+            parsedSession,
           );
-      }
+          return;
+        }
+      } catch {}
 
-      if (seller) setCurrentSeller(seller);
+      const legacySellerId = Number(
+        typeof parsedSession === "number" ? parsedSession : storedSession,
+      );
+      if (!Number.isNaN(legacySellerId)) {
+        const seller = await getSellerById(db, legacySellerId);
+        if (seller) {
+          setCurrentSeller(seller);
+          queryClient.setQueryData([SELLER_QUERY_KEY, "id", seller.id], seller);
+          await AsyncStorage.setItem(
+            ASYNC_STORAGE_SELLER_KEY,
+            JSON.stringify(seller),
+          );
+        }
+      }
     } finally {
-      setIsRestoringSession(false); // ✅ c'est ici le point clé
+      setIsRestoringSession(false);
     }
   };
 

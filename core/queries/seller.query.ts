@@ -5,7 +5,7 @@ import {
   createSeller,
   getSellerById,
   getSellerByName,
-  loginSeller,
+  loginService,
 } from "../services/seller.service";
 
 /**
@@ -52,8 +52,6 @@ export function useCreateSellerQuery(queryClient: QueryClient) {
  * Login seller
  */
 export function useLoginSellerQuery() {
-  const db = getDatabase();
-
   return useMutation({
     mutationFn: async ({
       name,
@@ -61,6 +59,6 @@ export function useLoginSellerQuery() {
     }: {
       name: string;
       passcode: string;
-    }) => loginSeller(db, name, passcode),
+    }) => loginService(name, passcode),
   });
 }

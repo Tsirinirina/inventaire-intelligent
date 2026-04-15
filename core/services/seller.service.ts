@@ -1,23 +1,29 @@
 import { SQLiteDatabase } from "expo-sqlite";
 import { NewSeller, Seller } from "../entity/seller.entity";
+import { useSyncStore } from "../store/sync.store";
+import { authApi, AuthenticatedSellerPayload } from "./api/auth.api";
 
 /**
  * Créer un seller
  * Vérifie si le nom existe déjà, renvoie une erreur si oui
  */
 export function createSeller(db: SQLiteDatabase, dto: NewSeller): Seller {
-  // Insérer le nouveau seller
+  const existing = getSellerByName(db, dto.name);
+  if (existing) {
+    return existing;
+  }
+
+  const lastUpdateDate = dto.lastUpdateDate || new Date().toISOString();
   const result = db!.runSync(
-    `INSERT OR IGNORE INTO sellers (name, passcode, lastUpdateDate) VALUES (?, ?, ?)`,
-    [dto.name, dto.passcode, dto.lastUpdateDate || new Date().toDateString()],
+    `INSERT INTO sellers (name, passcode, lastUpdateDate) VALUES (?, ?, ?)`,
+    [dto.name, dto.passcode, lastUpdateDate],
   );
 
-  // Retourner le seller créé
   return {
     id: result.lastInsertRowId,
     name: dto.name,
     passcode: dto.passcode,
-    lastUpdateDate: dto.lastUpdateDate,
+    lastUpdateDate,
   };
 }
 
@@ -66,4 +72,41 @@ export function loginSeller(
   }
 
   return seller[0];
+}
+
+export function upsertLocalSellerSession(
+  db: SQLiteDatabase,
+  name: string,
+  passcode: string,
+): Seller {
+  const existing = getSellerByName(db, name);
+  const lastUpdateDate = new Date().toISOString();
+
+  if (existing) {
+    db.runSync(
+      `UPDATE sellers SET passcode = ?, lastUpdateDate = ? WHERE id = ?`,
+      [passcode, lastUpdateDate, existing.id],
+    );
+
+    return {
+      ...existing,
+      passcode,
+      lastUpdateDate,
+    };
+  }
+
+  return createSeller(db, {
+    name,
+    passcode,
+    lastUpdateDate,
+  });
+}
+
+export async function loginService(
+  name: string,
+  passcode: string,
+): Promise<AuthenticatedSellerPayload> {
+  const loginRes = await authApi.login(name, passcode);
+  useSyncStore.getState().setAuthToken(loginRes.token);
+  return loginRes.seller;
 }

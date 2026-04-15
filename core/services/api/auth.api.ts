@@ -1,13 +1,16 @@
 import { apiClient } from "./api.client";
 
-export interface LoginResult {
-  token: string;
-  seller: { syncId: string; name: string };
-}
-
-export interface FindOrCreateResult {
+export interface AuthenticatedSellerPayload {
   syncId: string;
   name: string;
+}
+
+export interface LoginResult {
+  token: string;
+  seller: AuthenticatedSellerPayload;
+}
+
+export interface FindOrCreateResult extends AuthenticatedSellerPayload {
   created: boolean;
 }
 
