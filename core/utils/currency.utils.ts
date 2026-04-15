@@ -1,5 +1,5 @@
 export const formatAriaryBasic = (amount: number) => {
-  return `${amount.toLocaleString("fr-MG")} Ar`;
+  return `${amount.toLocaleString("fr-MG")} Fmg`;
 };
 
 export const formatAriary = (amount: number) => {
@@ -14,5 +14,5 @@ export const formatAriary = (amount: number) => {
   const numberWithDots = numberWithSeparators.replace(/\s/g, ".");
 
   // Ajouter la devise
-  return `${numberWithDots} Ar`;
+  return `${numberWithDots} Fmg`;
 };

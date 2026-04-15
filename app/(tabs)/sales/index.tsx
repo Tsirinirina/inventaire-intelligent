@@ -17,6 +17,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { formatAriary } from "../../../core/utils/currency.utils";
 
 export default function SaleScreen() {
   const router = useRouter();
@@ -26,7 +27,7 @@ export default function SaleScreen() {
   const { products, productsLoading } = useProduct();
   const { accessorys: accessories, accessorysLoading } = useAccessory();
   const cartCount = useCartStore((s) =>
-    s.items.reduce((sum, i) => sum + i.quantity, 0)
+    s.items.reduce((sum, i) => sum + i.quantity, 0),
   );
 
   const sellableItems: SellableItem[] = useMemo(
@@ -65,9 +66,7 @@ export default function SaleScreen() {
   const renderItem = ({ item }: { item: SellableItem }) => {
     const outOfStock = item.quantity === 0;
     return (
-      <View
-        style={[styles.card, outOfStock && { opacity: 0.5 }]}
-      >
+      <View style={[styles.card, outOfStock && { opacity: 0.5 }]}>
         {/* Badge stock */}
         <View
           style={[
@@ -80,20 +79,26 @@ export default function SaleScreen() {
 
         {/* Image */}
         {item.imageUri ? (
-          <Image source={{ uri: item.imageUri }} style={styles.image} contentFit="cover" />
+          <Image
+            source={{ uri: item.imageUri }}
+            style={styles.image}
+            contentFit="cover"
+          />
         ) : (
           <View style={[styles.image, styles.imagePlaceholder]} />
         )}
 
         {/* Infos */}
         <View style={styles.info}>
-          <Text style={styles.name} numberOfLines={1}>{item.name}</Text>
+          <Text style={styles.name} numberOfLines={1}>
+            {item.name}
+          </Text>
           {item.type === "product" && item.brand ? (
             <Text style={styles.sub}>{item.brand}</Text>
           ) : (
             <Text style={styles.sub}>{capitalizeWords(item.category)}</Text>
           )}
-          <Text style={styles.price}>{item.basePrice.toLocaleString()} Ar</Text>
+          <Text style={styles.price}>{formatAriary(item.basePrice)}</Text>
         </View>
 
         {/* Bouton ajouter */}

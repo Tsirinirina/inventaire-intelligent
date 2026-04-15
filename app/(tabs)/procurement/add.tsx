@@ -16,6 +16,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { formatAriary } from "../../../core/utils/currency.utils";
 
 export default function AddToProcurementScreen() {
   const router = useRouter();
@@ -27,9 +28,7 @@ export default function AddToProcurementScreen() {
   const addItem = useProcurementStore((s) => s.addItem);
 
   const [quantity, setQuantity] = useState("1");
-  const [estimatedCost, setEstimatedCost] = useState(
-    item.basePrice.toString(),
-  );
+  const [estimatedCost, setEstimatedCost] = useState(item.basePrice.toString());
   const [notes, setNotes] = useState("");
 
   const qty = Number(quantity) || 0;
@@ -84,9 +83,7 @@ export default function AddToProcurementScreen() {
       {qty > 0 && cost > 0 && (
         <View style={styles.subtotalBanner}>
           <Text style={styles.subtotalLabel}>Coût total estimé</Text>
-          <Text style={styles.subtotalValue}>
-            {subtotal.toLocaleString()} Ar
-          </Text>
+          <Text style={styles.subtotalValue}>{formatAriary(subtotal)}</Text>
         </View>
       )}
 
@@ -102,7 +99,7 @@ export default function AddToProcurementScreen() {
       />
 
       {/* Coût unitaire estimé */}
-      <Text style={styles.label}>Coût unitaire estimé (Ar)</Text>
+      <Text style={styles.label}>Coût unitaire estimé (Fmg)</Text>
       <TextInput
         style={styles.input}
         placeholder="Prix d'achat estimé"

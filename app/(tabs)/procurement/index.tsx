@@ -3,6 +3,7 @@ import { useProduct } from "@/core/contexts/ProductContext";
 import { SellableItem } from "@/core/entity/sale.entity";
 import { useProcurementStore } from "@/core/store/procurement.store";
 import { capitalizeWords } from "@/core/utils/capitalize.utils";
+import { formatAriary } from "@/core/utils/currency.utils";
 import { useTheme } from "@/theme/ThemeProvider";
 import { Image } from "expo-image";
 import { useRouter } from "expo-router";
@@ -112,9 +113,7 @@ export default function ProcurementScreen() {
         ) : (
           <Text style={styles.sub}>{capitalizeWords(item.category)}</Text>
         )}
-        <Text style={styles.price}>
-          {item.basePrice.toLocaleString()} Ar
-        </Text>
+        <Text style={styles.price}>{formatAriary(item.basePrice)}</Text>
       </View>
 
       {/* Bouton ajouter */}

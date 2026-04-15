@@ -4,14 +4,15 @@ import {
   ProcurementItem,
   useProcurementStore,
 } from "@/core/store/procurement.store";
-import { formatProcurementListAsText } from "@/core/utils/procurement-export.utils";
 import { capitalizeWords } from "@/core/utils/capitalize.utils";
+import { formatAriary } from "@/core/utils/currency.utils";
+import { formatProcurementListAsText } from "@/core/utils/procurement-export.utils";
 import { ThemeColors } from "@/theme/colors";
 import { useTheme } from "@/theme/ThemeProvider";
 import * as Clipboard from "expo-clipboard";
-import * as Sharing from "expo-sharing";
 import { Image } from "expo-image";
 import { useRouter } from "expo-router";
+import * as Sharing from "expo-sharing";
 import {
   ClipboardCopy,
   ImageIcon,
@@ -174,8 +175,7 @@ export default function ProcurementCartScreen() {
 
         {item.estimatedUnitCost != null && item.estimatedUnitCost > 0 && (
           <Text style={styles.cardCost}>
-            {(item.estimatedUnitCost * item.quantityToOrder).toLocaleString()}{" "}
-            Ar
+            {formatAriary(item.estimatedUnitCost * item.quantityToOrder)}
           </Text>
         )}
         {item.notes && (
@@ -230,7 +230,7 @@ export default function ProcurementCartScreen() {
               <View style={styles.summaryRow}>
                 <Text style={styles.summaryLabel}>Coût total estimé</Text>
                 <Text style={styles.summaryTotal}>
-                  {totalCost.toLocaleString()} Ar
+                  {formatAriary(totalCost)}
                 </Text>
               </View>
             )}
@@ -242,10 +242,7 @@ export default function ProcurementCartScreen() {
       <View style={styles.footer}>
         {/* Action buttons row */}
         <View style={styles.actionsRow}>
-          <TouchableOpacity
-            style={styles.actionBtn}
-            onPress={handleCopyText}
-          >
+          <TouchableOpacity style={styles.actionBtn} onPress={handleCopyText}>
             <ClipboardCopy size={20} color={colors.primary} />
             <Text style={styles.actionBtnText}>Copier</Text>
           </TouchableOpacity>
@@ -274,10 +271,7 @@ export default function ProcurementCartScreen() {
         </View>
 
         {/* Clear cart button */}
-        <TouchableOpacity
-          style={styles.clearBtn}
-          onPress={handleClearCart}
-        >
+        <TouchableOpacity style={styles.clearBtn} onPress={handleClearCart}>
           <XCircle size={16} color={colors.danger} />
           <Text style={styles.clearBtnText}>Vider le panier</Text>
         </TouchableOpacity>

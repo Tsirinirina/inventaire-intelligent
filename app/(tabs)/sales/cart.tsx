@@ -1,8 +1,9 @@
+import { useToast } from "@/components/ui/Toast";
 import { useAccessory } from "@/core/contexts/AccessoryContext";
 import { useProduct } from "@/core/contexts/ProductContext";
 import { useSale } from "@/core/contexts/SaleContext";
 import { CartItem, useCartStore } from "@/core/store/cart.store";
-import { useToast } from "@/components/ui/Toast";
+import { formatAriary } from "@/core/utils/currency.utils";
 import { useTheme } from "@/theme/ThemeProvider";
 import { ThemeColors } from "@/theme/colors";
 import { Image } from "expo-image";
@@ -16,7 +17,6 @@ import {
   KeyboardAvoidingView,
   Platform,
   Pressable,
-  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -33,7 +33,7 @@ export default function CartScreen() {
   const removeItem = useCartStore((s) => s.removeItem);
   const clearCart = useCartStore((s) => s.clearCart);
   const totalAmount = useCartStore((s) =>
-    s.items.reduce((sum, i) => sum + i.unitPrice * i.quantity, 0)
+    s.items.reduce((sum, i) => sum + i.unitPrice * i.quantity, 0),
   );
 
   const { showToast } = useToast();
@@ -46,14 +46,14 @@ export default function CartScreen() {
   const [buyerCin, setBuyerCin] = useState("");
 
   const handleRemove = (cartId: string, name: string) => {
-    Alert.alert(
-      "Retirer du panier",
-      `Retirer "${name}" du panier ?`,
-      [
-        { text: "Annuler", style: "cancel" },
-        { text: "Retirer", style: "destructive", onPress: () => removeItem(cartId) },
-      ],
-    );
+    Alert.alert("Retirer du panier", `Retirer "${name}" du panier ?`, [
+      { text: "Annuler", style: "cancel" },
+      {
+        text: "Retirer",
+        style: "destructive",
+        onPress: () => removeItem(cartId),
+      },
+    ]);
   };
 
   const handleConfirm = async () => {
@@ -64,7 +64,7 @@ export default function CartScreen() {
 
     Alert.alert(
       "Confirmer la vente",
-      `${items.length} article(s) — Total : ${totalAmount.toLocaleString()} Ar\n\nCette action va enregistrer toutes les ventes et mettre à jour le stock.`,
+      `${items.length} article(s) — Total : ${totalAmount.toLocaleString()} Fmg\n\nCette action va enregistrer toutes les ventes et mettre à jour le stock.`,
       [
         { text: "Annuler", style: "cancel" },
         {
@@ -77,7 +77,8 @@ export default function CartScreen() {
                 await addSale({
                   sellerId: item.sellerId,
                   productId: item.type === "product" ? item.itemId : undefined,
-                  accessoryId: item.type === "accessory" ? item.itemId : undefined,
+                  accessoryId:
+                    item.type === "accessory" ? item.itemId : undefined,
                   quantity: item.quantity,
                   unitPrice: item.unitPrice,
                   imei: item.imei,
@@ -111,10 +112,16 @@ export default function CartScreen() {
               }
 
               clearCart();
-              showToast("success", `${items.length} vente(s) enregistrée(s) avec succès`);
+              showToast(
+                "success",
+                `${items.length} vente(s) enregistrée(s) avec succès`,
+              );
               router.replace("/(tabs)/sales");
             } catch (error) {
-              Alert.alert("Erreur", "Une erreur s'est produite lors de la confirmation.");
+              Alert.alert(
+                "Erreur",
+                "Une erreur s'est produite lors de la confirmation.",
+              );
               console.error(error);
             } finally {
               setConfirming(false);
@@ -128,30 +135,44 @@ export default function CartScreen() {
   const renderItem = ({ item }: { item: CartItem }) => (
     <View style={styles.card}>
       {item.imageUri ? (
-        <Image source={{ uri: item.imageUri }} style={styles.image} contentFit="cover" />
+        <Image
+          source={{ uri: item.imageUri }}
+          style={styles.image}
+          contentFit="cover"
+        />
       ) : (
         <View style={[styles.image, styles.imagePlaceholder]} />
       )}
 
       <View style={styles.cardInfo}>
-        <Text style={styles.cardName} numberOfLines={1}>{item.name}</Text>
+        <Text style={styles.cardName} numberOfLines={1}>
+          {item.name}
+        </Text>
         {item.brand && <Text style={styles.cardSub}>{item.brand}</Text>}
         <View style={styles.cardDetails}>
           <Text style={styles.cardQty}>×{item.quantity}</Text>
           <Text style={styles.cardPrice}>
-            {(item.quantity * item.unitPrice).toLocaleString()} Ar
+            {formatAriary(item.quantity * item.unitPrice)}
           </Text>
         </View>
         {item.imei && <Text style={styles.cardMeta}>IMEI : {item.imei}</Text>}
-        {item.color && <Text style={styles.cardMeta}>Couleur : {item.color}</Text>}
+        {item.color && (
+          <Text style={styles.cardMeta}>Couleur : {item.color}</Text>
+        )}
         {item.ram && (
           <Text style={styles.cardMeta}>
-            RAM {item.ram} Go{item.rom ? ` / ROM ${item.rom >= 1024 ? `${item.rom / 1024} To` : `${item.rom} Go`}` : ""}
+            RAM {item.ram} Go
+            {item.rom
+              ? ` / ROM ${item.rom >= 1024 ? `${item.rom / 1024} To` : `${item.rom} Go`}`
+              : ""}
           </Text>
         )}
       </View>
 
-      <TouchableOpacity style={styles.removeBtn} onPress={() => handleRemove(item.cartId, item.name)}>
+      <TouchableOpacity
+        style={styles.removeBtn}
+        onPress={() => handleRemove(item.cartId, item.name)}
+      >
         <Trash2 size={18} color={colors.danger} />
       </TouchableOpacity>
     </View>
@@ -216,9 +237,7 @@ export default function CartScreen() {
           <Text style={styles.totalLabel}>
             {items.length} article{items.length > 1 ? "s" : ""}
           </Text>
-          <Text style={styles.totalAmount}>
-            {totalAmount.toLocaleString()} Ar
-          </Text>
+          <Text style={styles.totalAmount}>{formatAriary(totalAmount)}</Text>
         </View>
 
         <TouchableOpacity

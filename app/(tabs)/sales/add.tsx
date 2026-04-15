@@ -121,7 +121,7 @@ export default function AddToCartScreen() {
         <View style={styles.subtotalBanner}>
           <Text style={styles.subtotalLabel}>Prix de base</Text>
           <Text style={styles.subtotalValue}>
-            {formatAriary(item.basePrice)} Ar
+            {formatAriary(item.basePrice)}
           </Text>
         </View>
       )}
@@ -130,7 +130,7 @@ export default function AddToCartScreen() {
       {qty > 0 && price > 0 && (
         <View style={styles.subtotalBanner}>
           <Text style={styles.subtotalLabel}>Sous-total</Text>
-          <Text style={styles.subtotalValue}>{formatAriary(subtotal)} Ar</Text>
+          <Text style={styles.subtotalValue}>{formatAriary(subtotal)}</Text>
         </View>
       )}
 
@@ -145,7 +145,7 @@ export default function AddToCartScreen() {
         onChangeText={setQuantity}
       />
 
-      <Text style={styles.label}>Prix unitaire (Ar)</Text>
+      <Text style={styles.label}>Prix unitaire (Fmg)</Text>
       <TextInput
         style={styles.input}
         placeholder="Prix de vente"
